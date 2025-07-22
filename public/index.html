@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>NFC Card Data</title>
+  <style>
+    body { font-family: sans-serif; margin: 2rem; }
+    pre { background: #f0f0f0; padding: 1rem; }
+  </style>
+</head>
+<body>
+  <h1>NFC Card Status</h1>
+  
+  <p><strong>Reader:</strong> <span id="reader">Waiting for Reader...</span></p>
+  <p><strong>User ID:</strong> <span id="userID">Waiting for Card...</span></p>
+  <p><strong>Hash:</strong> <span id="hash">Waiting for Card...</span></p>
+  <button onclick=fetchCardData()>Refresh</button>
+  <button onclick=getReaderStatus()>Get Reader Status</button>
+
+  <script>
+    window.addEventListener('DOMContentLoaded', fetchCardData);
+
+    async function getReaderStatus() {
+      try {
+        const res = await fetch('/check-reader');
+        const data = await res.json();
+
+        if(data.connected === true){
+          document.getElementById('reader').textContent = 'Connected';
+        } else if (data.connected === false){
+          document.getElementById('reader').textContent = 'Disconnected';
+        } else if (!res) {
+          document.getElementById('reader').textContent = 'Error';
+        }
+      } catch (err){
+        document.getElementById('reader').textContent = 'Error';
+      }
+    }
+
+    async function fetchCardData() {
+      const btn = document.querySelector('button');
+      btn.disabled = true;
+      btn.textContent = 'Reading...';
+
+      document.getElementById('userID').textContent = 'Waiting for Card...';
+      document.getElementById('hash').textContent = 'Waiting for Card...';
+
+      try {
+        const res = await fetch('/read-nfc');
+        const data = await res.json();
+
+        if (data.valid && data.data) {
+          document.getElementById('userID').textContent = data.data.userID;
+          document.getElementById('hash').textContent = data.data.hash;
+        } else if (data.data) {
+          document.getElementById('userID').textContent = 'Invalid card data';
+          document.getElementById('hash').textContent = 'Invalid card data';
+        } else {
+          document.getElementById('userID').textContent = 'Waiting for Card...';
+          document.getElementById('hash').textContent = 'Waiting for Card...';
+        }
+      } catch (err) {
+        document.getElementById('userID').textContent = 'Error reading card';
+        document.getElementById('hash').textContent = 'Error reading card';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Refresh';
+      }
+    }
+
+  </script>
+</body>
+</html>
