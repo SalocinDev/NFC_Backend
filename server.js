@@ -10,7 +10,8 @@ const path = require('path'); // path module for node
 const app = express(); // instantiate express
 const port = 3000;
 
-const indexHTML = path.join(__dirname, 'public', 'index.html')
+// prepare path
+const indexHTML = path.join(__dirname, 'public', 'index.html');
 const viteReactDist = path.join(__dirname, '..', 'NFC_Frontend', 'LoginPage', 'dist');
 const viteReactHtml = path.join(__dirname, '..', 'NFC_Frontend', 'LoginPage', 'dist', 'index.html');
 
