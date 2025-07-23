@@ -1,5 +1,5 @@
 const { NFC } = require('nfc-pcsc')
-const { isNTAG215 } = require('./utils/checkCard');
+const { isNTAG215 } = require('../nfc_utils/checkCard');
 const { createHash } = require('crypto');
 
 // prepare nfc readable area

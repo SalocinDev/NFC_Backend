@@ -18,5 +18,5 @@ function postData(cardData, toServer) {
     }
   }
   
-  module.exports = postData;
+module.exports = { postData };
   

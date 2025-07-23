@@ -1,8 +1,8 @@
 const { NFC } = require('nfc-pcsc'); // nfc pcsc module
-const { writeJSONToNTAG215, wipeNTAG215 } = require('./utils/ntag215-utils'); // in the name, custom utils to write and wipe NTAG215 cards
-const { isNTAG215 } = require('./utils/checkCard'); // check if ntag215
+const { writeJSONToNTAG215, wipeNTAG215 } = require('../nfc_utils/ntag215-utils'); // in the name, custom utils to write and wipe NTAG215 cards
+const { isNTAG215 } = require('../nfc_utils/checkCard'); // check if ntag215
 const { createHash } = require('crypto'); // for sha256
-const { postData } = require('./utils/postData'); // todo: post to database logic
+/* const { postData } = require('../nfc_utils/postData'); */ // todo: post to database logic
 
 // prepare start page var
 const startPage = 4;
@@ -36,7 +36,7 @@ function writeNFC(payload) {
         // prepares the payload
         const dataStr = JSON.stringify(payload);
         const hash = getHash(dataStr);
-        postData(hash);
+        /* postData(hash); */
 
         // constructs the payload with the hash
         // the ... is shorthand for pairing values in the json. it's a catch all approach for payloads that have a lot of pairs

@@ -2,9 +2,10 @@
 // dito ang server logic
 
 const express = require('express'); // express
-const { checkReader } = require('./checkReader'); // check if reader is connected
-const { writeNFC } = require('./nfc_write'); // nfc wrtie function
-const { readNFC }  = require('./nfc_read'); // nfc read function
+const { checkReader } = require('./NFC/checkReader'); // check if reader is connected
+const { writeNFC } = require('./NFC/nfc_write'); // nfc wrtie function
+const { readNFC }  = require('./NFC/nfc_read'); // nfc read function
+const { loginVerify } = require('./loginVerify');
 const bodyParser = require('body-parser'); // for json
 const path = require('path'); // path module for node
 const app = express(); // instantiate express
@@ -12,8 +13,8 @@ const port = 3000;
 
 // prepare path
 const indexHTML = path.join(__dirname, 'public', 'index.html');
-const viteReactDist = path.join(__dirname, '..', 'NFC_Frontend', 'LoginPage', 'dist');
-const viteReactHtml = path.join(__dirname, '..', 'NFC_Frontend', 'LoginPage', 'dist', 'index.html');
+const viteReactDist = path.join(__dirname, 'dist');
+const viteReactHtml = path.join(__dirname, 'dist', 'index.html');
 
 app.use(express.static(viteReactDist)); // to serve vite-react built files
 app.use(bodyParser.json()); // ready json parser
@@ -21,22 +22,21 @@ app.use(bodyParser.json()); // ready json parser
 // make express js api end point at /write-nfc
 app.post('/write-nfc', async (req, res) => {  
   try {
-    const payload = req.body; // read payload
+    const payload = req.body;
 
-    // check if valid payload
     if (!payload || typeof payload !== 'object') {
-      return res.status(400).send('Invalid or missing JSON payload');
+      return res.status(400).json({ success: false, message: 'Invalid or missing JSON payload' });
     }
 
-    // execute write to nfc function
     await writeNFC(payload);
-    res.status(200).send('NFC card written successfully');
-  } catch (err) { // catch error
+
+    res.status(200).json({ success: true, message: 'NFC card written successfully' });
+  } catch (err) {
     console.error(err);
-    res.status(500).send('Failed to write NFC card');
+    res.status(500).json({ success: false, message: 'Failed to write NFC card' });
   }
 });
-;
+
 
 // same with /write-nfc api endpoint
 app.get('/read-nfc', async (req, res) => {
@@ -67,11 +67,6 @@ app.get('/view', (req, res) => {
   });
 });
 
-app.get('/landing-page', (req, res) =>{
-  // logic here
-  
-});
-
 app.get('/test-vitereact', (req, res) =>{
   res.sendFile(viteReactHtml, err =>{
     if (err){
@@ -82,6 +77,29 @@ app.get('/test-vitereact', (req, res) =>{
     }
   });
 })
+
+app.post('/login-verify', async (req, res) => {
+  try {
+    const { name, password } = req.body;
+
+    if (!name || !password) {
+      return res.status(400).json({ error: 'Missing name or password' });
+    }
+
+    const result = await loginVerify({ name, password });
+
+    if (!result || !result.success) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    console.log(result);
+    res.status(200).json(result); // sends { success: true, role: 'admin' }
+
+  } catch (err) {
+    console.error('Error in /login-verify:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 // assign port to listen
 app.listen(port, () => {
