@@ -8,7 +8,9 @@ const { readNFC }  = require('./NFC/nfc_read'); // nfc read function
 const { loginVerify } = require('./loginVerify');
 const bodyParser = require('body-parser'); // for json
 const path = require('path'); // path module for node
+const cors = require('cors'); // cors
 const app = express(); // instantiate express
+/* const ip = "172.26.82.39"; */
 const port = 3000;
 
 // prepare path
@@ -16,6 +18,7 @@ const indexHTML = path.join(__dirname, 'public', 'index.html');
 const viteReactDist = path.join(__dirname, 'dist');
 const viteReactHtml = path.join(__dirname, 'dist', 'index.html');
 
+app.use(cors()); // for development, opens all origins
 app.use(express.static(viteReactDist)); // to serve vite-react built files
 app.use(bodyParser.json()); // ready json parser
 
@@ -93,7 +96,7 @@ app.post('/login-verify', async (req, res) => {
     }
 
     console.log(result);
-    res.status(200).json(result); // sends { success: true, role: 'admin' }
+    res.status(200).json(result); // sends { success: true, role: 'admin' or 'member' }
 
   } catch (err) {
     console.error('Error in /login-verify:', err);
@@ -102,6 +105,6 @@ app.post('/login-verify', async (req, res) => {
 });
 
 // assign port to listen
-app.listen(port, () => {
+app.listen(port, /* ip, */ () => {
   console.log(`NFC server running at http://localhost:${port}`);
 });
