@@ -13,15 +13,11 @@
   "dependencies": {
     "body-parser": "^2.2.0",
     "cors": "^2.8.5",
-    "ejs": "^3.1.10",
     "express": "^5.1.0",
     "mysql": "^2.18.1",
     "mysql-import": "^5.0.21",
     "mysql2": "^3.14.2",
-    "next": "^15.3.3",
-    "nfc-pcsc": "^0.8.1",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "nfc-pcsc": "^0.8.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"

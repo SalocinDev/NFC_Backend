@@ -1,6 +1,7 @@
 const { NFC } = require('nfc-pcsc'); // nfc pcsc module
 const { writeJSONToNTAG215, wipeNTAG215 } = require('../nfc_utils/ntag215-utils'); // in the name, custom utils to write and wipe NTAG215 cards
 const { isNTAG215 } = require('../nfc_utils/checkCard'); // check if ntag215
+const { writetoDB } = require('../nfc_utils/sqlNFClogic')
 const { createHash } = require('crypto'); // for sha256
 /* const { postData } = require('../nfc_utils/postData'); */ // todo: post to database logic
 
@@ -8,8 +9,10 @@ const { createHash } = require('crypto'); // for sha256
 const startPage = 4;
 
 // generates sha256 hash from data parameter
-function getHash(data) {
-  return createHash('sha256').update(data).digest('hex');
+function getHash(role, name, password, data) {
+  const calculatedHash = createHash('sha256').update(data).digest('hex');
+  writetoDB(calculatedHash, role, name, password);
+  return calculatedHash;
 }
 
 // promise based write nfc function with payload parameter
@@ -35,13 +38,15 @@ function writeNFC(payload) {
 
         // prepares the payload
         const dataStr = JSON.stringify(payload);
-        const hash = getHash(dataStr);
+        const role = payload.role;
+        const name = payload.name;
+        const password = payload.password;
+        const hash = getHash(role, name, password, dataStr);
         /* postData(hash); */
 
         // constructs the payload with the hash
         // the ... is shorthand for pairing values in the json. it's a catch all approach for payloads that have a lot of pairs
         const fullPayload = {
-          ...payload,
           hash
         };
 

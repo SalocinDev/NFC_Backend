@@ -1,4 +1,3 @@
-
 // asyncronous function// asyncronous function to write JSON to NTAG215
 async function writeJSONToNTAG215(reader, jsonData, startPage = 4) {
   // converts the json into string

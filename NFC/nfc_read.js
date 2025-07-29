@@ -1,16 +1,11 @@
 const { NFC } = require('nfc-pcsc')
 const { isNTAG215 } = require('../nfc_utils/checkCard');
-const { createHash } = require('crypto');
+const { getHashfromDB } = require('../nfc_utils/sqlNFClogic')
 
 // prepare nfc readable area
 const startPage = 4;
 const length = 126 * 4;
 const blockSize = 4;
-
-function getHash(data) {
-  return createHash('sha256').update(data).digest('hex');
-  // todo: replace with stored hash in database
-}
 
 // promise based read nfc function with payload parameter
 function readNFC() {
@@ -48,25 +43,28 @@ function readNFC() {
             return resolve({ valid: false, data: null });
           }
           
-          // extracts userID and hash from the parsed json and puts it into a local value
-          const userID = json.userID;
+          // extracts hash from the parsed json and puts it into a local value
           const hash = json.hash;
-          if (!userID || !hash) { // checks if the two fields are in the json
+          
+          // validate there's a hash
+          if (!hash) {
             reader.close();
-            // card is invalid but stil presents data
-            return resolve({ valid: false, data: json });
-          } // if not it continues
+            return resolve({ valid: false, data: null }); // invalid: no hash
+          }
 
-          // gets hash from the userID
-          // todo: replace with get query from database
-          const computedHash = getHash(JSON.stringify({ userID }));
+          // gets hash from db
+          const getHash = await getHashfromDB(hash);
+          const hashExists = getHash.hashReal;
+          const userID = getHash.userID;
           reader.close();
 
-          // after thorough processing, it returns a json(userID, hash) within a json(valid, data)
+          // return if hash exists in db
           return resolve({
-            valid: computedHash === hash,
-            data: json,
+            valid: hashExists,
+            userID: userID,
+            data: json
           });
+
         } catch (err) { // error catching
           reader.close();
           return resolve({ valid: false, data: null });

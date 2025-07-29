@@ -22,8 +22,6 @@
   <button id="write-btn" onclick="writeToCard()">Write</button>
   <p id="write-status"></p>
 
-
-
   <script>
 
     async function getReaderStatus() {
@@ -57,7 +55,7 @@
         const data = await res.json();
         document.getElementById('card').textContent = 'Reading...';
         if (data.valid && data.data) {
-          document.getElementById('userID').textContent = data.data.userID;
+          document.getElementById('userID').textContent = data.userID;
           document.getElementById('hash').textContent = data.data.hash;
           document.getElementById('card').textContent = 'Read';
         } else if (data.data) {
