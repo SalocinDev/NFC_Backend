@@ -5,7 +5,7 @@ const express = require('express'); // express
 const { checkReader } = require('./NFC/checkReader'); // check if reader is connected
 const { writeNFC } = require('./NFC/nfc_write'); // nfc wrtie function
 const { readNFC }  = require('./NFC/nfc_read'); // nfc read function
-const { loginVerify } = require('./loginVerify');
+const { loginVerify, NFCloginVerify } = require('./loginVerify');
 const bodyParser = require('body-parser'); // for json
 const path = require('path'); // path module for node
 const cors = require('cors'); // cors
@@ -81,22 +81,35 @@ app.get('/test-vitereact', (req, res) =>{
   });
 })
 
+
 app.post('/login-verify', async (req, res) => {
   try {
-    const { name, password } = req.body;
+    const { name, password, hash } = req.body;
 
-    if (!name || !password) {
-      return res.status(400).json({ error: 'Missing name or password' });
+    // case 1: Username/password login
+    if (name && password) {
+      const result = await loginVerify({ name, password });
+
+      if (!result.success) {
+        return res.status(401).json({ error: 'Invalid credentials' });
+      }
+
+      return res.status(200).json(result);  // { success: true, role: '...' }
     }
 
-    const result = await loginVerify({ name, password });
+    // case 2: NFC login
+    if (hash) {
+      const result = await NFCloginVerify({ hash });
 
-    if (!result || !result.success) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      if (!result.success) {
+        return res.status(401).json({ error: 'Invalid NFC hash' });
+      }
+
+      return res.status(200).json(result);  // { success: true, role: '...' }
     }
 
-    console.log(result);
-    res.status(200).json(result); // sends { success: true, role: 'admin' or 'member' }
+    // if neither login method is provided
+    return res.status(400).json({ error: 'Missing login credentials' });
 
   } catch (err) {
     console.error('Error in /login-verify:', err);
