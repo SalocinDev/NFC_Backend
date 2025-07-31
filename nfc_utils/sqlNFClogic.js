@@ -17,32 +17,6 @@ async function writetoDB(hash, role, name, password) {
         throw err;
     }
   }
-
-async function compareHash({ name, password, nfchash }) {
-    try {
-      const [rows] = await pool.query(
-        'SELECT hash, role FROM users WHERE name = ? AND password = ?',
-        [name, password]
-      );
-  
-    if (rows.length > 0) {
-        const dbHash = rows[0].hash;
-        const role = rows[0].role;
-  
-        if (nfchash === dbHash) {
-          return { success: true, role };
-        } else {
-          return { success: false, message: "Hash mismatch" };
-        }
-    } else {
-        return { success: false, message: "User not found" };
-    }
-  
-    } catch (err) {
-        console.error('Error in readHashfromDB:', err);
-        throw err;
-    }
-}
     
 async function getHashfromDB(hash) {
     try {

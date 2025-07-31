@@ -103,6 +103,7 @@ out
 .cache
 
 # vitepress build output
+.dist
 
 # vitepress cache directory
 **/.vitepress/cache
