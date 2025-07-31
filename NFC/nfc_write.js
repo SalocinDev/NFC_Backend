@@ -57,6 +57,7 @@ function writeNFC(payload) {
           await wipeNTAG215(reader);
           console.log("Writing to card...");
           // write to card with reader, fullPayload, and startPage 
+          // todo: check if payload is already in the database before proceeding
           await writeJSONToNTAG215(reader, fullPayload, startPage);
           console.log("Card written successfully.");
           resolve(); // resolve with no parameters because there's nothing to return
