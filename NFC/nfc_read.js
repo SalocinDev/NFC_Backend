@@ -56,12 +56,18 @@ function readNFC() {
           const getHash = await getHashfromDB(hash);
           const hashExists = getHash.hashReal;
           const userID = getHash.userID;
+          const name = getHash.name;
+          const role = getHash.role;
+          const pass = getHash.pass;
           reader.close();
 
           // return if hash exists in db
           return resolve({
             valid: hashExists,
             userID: userID,
+            name: name,
+            role: role,
+            pass: pass,
             data: json
           });
 

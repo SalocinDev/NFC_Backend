@@ -5,7 +5,7 @@ const express = require('express'); // express
 const { checkReader } = require('./NFC/checkReader'); // check if reader is connected
 const { writeNFC } = require('./NFC/nfc_write'); // nfc wrtie function
 const { readNFC }  = require('./NFC/nfc_read'); // nfc read function
-const { loginVerify, NFCloginVerify } = require('./loginVerify');
+const { loginVerify, NFCloginVerify } = require('./SQL/loginVerify');
 const bodyParser = require('body-parser'); // for json
 const path = require('path'); // path module for node
 const cors = require('cors'); // cors
@@ -16,7 +16,7 @@ const port = 3000;
 // prepare path
 const indexHTML = path.join(__dirname, 'public', 'index.html');
 const viteReactDist = path.join(__dirname, 'dist');
-const viteReactHtml = path.join(__dirname, 'dist', 'index.html');
+/* const viteReactHtml = path.join(__dirname, 'dist', 'index.html'); */
 
 app.use(cors()); // for development, opens all origins
 app.use(express.static(viteReactDist)); // to serve vite-react built files
@@ -70,7 +70,7 @@ app.get('/view', (req, res) => {
   });
 });
 
-app.get('/test-vitereact', (req, res) =>{
+/* app.get('/test-vitereact', (req, res) =>{
   res.sendFile(viteReactHtml, err =>{
     if (err){
       console.log('Error serving file'+ err);
@@ -79,7 +79,7 @@ app.get('/test-vitereact', (req, res) =>{
       console.log('File served from vite/react to express/node');
     }
   });
-})
+}) */
 
 
 app.post('/login-verify', async (req, res) => {
