@@ -22,10 +22,23 @@ const indexHTML = path.join(__dirname, 'public', 'index.html');
 const viteReactDist = path.join(__dirname, 'dist');
 /* const viteReactHtml = path.join(__dirname, 'dist', 'index.html'); */
 
+const allowedOrigins = [
+  "http://172.26.82.39:5173",
+  "http://localhost:5173",
+  "http://172.26.21.211/5173"
+];
+
 app.use(cors({
-  origin: "http://localhost:5173",
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
   credentials: true
 }));
+
 app.use(bodyParser.json()); // ready json parser
 app.use(session({
   name: 'anongginagawamodito',
@@ -101,7 +114,8 @@ app.post('/login-verify', async (req, res) => {
       }
       const id = await getUserID(name);
       req.session.login = { userID: id };
-      req.session.cookie.expires = 1000 * 60;
+      req.session.cookie.expires = new Date(Date.now() + 1000 * 60); // expires in 1 minute
+
 
       return res.status(200).json(result);  // { success: true, role: '...' }
     }
@@ -116,7 +130,8 @@ app.post('/login-verify', async (req, res) => {
 
       const id = await getUserID_NFC(hash);
       req.session.login = { userID: id };
-      req.session.cookie.expires = 1000 * 60;
+      req.session.cookie.expires = new Date(Date.now() + 1000 * 60); // expires in 1 minute
+
 
       return res.status(200).json(result);  // { success: true, role: '...' }
     }
@@ -137,21 +152,6 @@ app.get('/get-session', (req, res) => {
     res.json({
       loggedIn: true,
       user: req.session.login.userID
-    });
-  } else {
-    res.json({ loggedIn: false });
-  }
-});
-
-app.get('/get-session', (req, res) => {
-  console.log("Session data:", req.session);
-
-  if (req.session && req.session.userID) {
-    console.log("User ID in session:", req.session.userID);
-
-    res.json({
-      loggedIn: true,
-      user: req.session.userID
     });
   } else {
     console.log("No user logged in.");
