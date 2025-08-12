@@ -1,14 +1,18 @@
-// server.js
 // dito ang server logic
+// todo: Routing
 
 const express = require('express'); // express
+const session = require("express-session"); // express-session
 const { checkReader } = require('./NFC/checkReader'); // check if reader is connected
 const { writeNFC } = require('./NFC/nfc_write'); // nfc wrtie function
 const { readNFC }  = require('./NFC/nfc_read'); // nfc read function
 const { loginVerify, NFCloginVerify } = require('./SQL/loginVerify');
+const { getKey } = require("./Crypto/getKey");
+const { getUserID, getUserID_NFC, getInfo } = require("./SQL/SQL-utils");
 const bodyParser = require('body-parser'); // for json
 const path = require('path'); // path module for node
 const cors = require('cors'); // cors
+const { corsOptions } = require('./CORS/corswhitelist')
 const app = express(); // instantiate express
 /* const ip = "172.26.82.39"; */
 const port = 3000;
@@ -18,9 +22,23 @@ const indexHTML = path.join(__dirname, 'public', 'index.html');
 const viteReactDist = path.join(__dirname, 'dist');
 /* const viteReactHtml = path.join(__dirname, 'dist', 'index.html'); */
 
-app.use(cors()); // for development, opens all origins
-app.use(express.static(viteReactDist)); // to serve vite-react built files
+app.use(cors({
+  origin: "http://localhost:5173",
+  credentials: true
+}));
 app.use(bodyParser.json()); // ready json parser
+app.use(session({
+  name: 'anongginagawamodito',
+  secret: getKey(),
+  saveUninitialized: false,
+  resave: false,
+  cookie: {
+    maxAge: 1000 * 60,
+    httpOnly: true,
+    secure: false
+  }
+}));
+app.use(express.static(viteReactDist)); // to serve vite-react built files
 
 // make express js api end point at /write-nfc
 app.post('/write-nfc', async (req, res) => {  
@@ -70,18 +88,6 @@ app.get('/view', (req, res) => {
   });
 });
 
-/* app.get('/test-vitereact', (req, res) =>{
-  res.sendFile(viteReactHtml, err =>{
-    if (err){
-      console.log('Error serving file'+ err);
-      res.status(err.status || 500).send('Error serving file');
-    } else {
-      console.log('File served from vite/react to express/node');
-    }
-  });
-}) */
-
-
 app.post('/login-verify', async (req, res) => {
   try {
     const { name, password, hash } = req.body;
@@ -93,6 +99,9 @@ app.post('/login-verify', async (req, res) => {
       if (!result.success) {
         return res.status(401).json({ error: 'Invalid credentials' });
       }
+      const id = await getUserID(name);
+      req.session.login = { userID: id };
+      req.session.cookie.expires = 1000 * 60;
 
       return res.status(200).json(result);  // { success: true, role: '...' }
     }
@@ -105,6 +114,10 @@ app.post('/login-verify', async (req, res) => {
         return res.status(401).json({ error: 'Invalid NFC hash' });
       }
 
+      const id = await getUserID_NFC(hash);
+      req.session.login = { userID: id };
+      req.session.cookie.expires = 1000 * 60;
+
       return res.status(200).json(result);  // { success: true, role: '...' }
     }
 
@@ -116,6 +129,48 @@ app.post('/login-verify', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+app.get('/get-session', (req, res) => {
+  console.log("Session data:", req.session);
+
+  if (req.session?.login?.userID) {
+    res.json({
+      loggedIn: true,
+      user: req.session.login.userID
+    });
+  } else {
+    res.json({ loggedIn: false });
+  }
+});
+
+app.get('/get-session', (req, res) => {
+  console.log("Session data:", req.session);
+
+  if (req.session && req.session.userID) {
+    console.log("User ID in session:", req.session.userID);
+
+    res.json({
+      loggedIn: true,
+      user: req.session.userID
+    });
+  } else {
+    console.log("No user logged in.");
+    res.json({ loggedIn: false });
+  }
+});
+
+
+app.post('/logout', (req, res) =>{
+  req.session.destroy(err => {
+    if (err) {
+      console.error("Session destroy error:", err);
+      return res.status(500).json({ success: false, message: "Could not log out" });
+    }
+
+    res.clearCookie("anongginagawamodito");
+    res.json({ success: true });
+  });
+})
 
 // assign port to listen
 app.listen(port, /* ip, */ () => {

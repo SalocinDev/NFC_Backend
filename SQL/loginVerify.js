@@ -3,12 +3,12 @@ const pool = require('./conn');
 async function loginVerify({ name, password }) {
   try {
     const [rows] = await pool.query(
-      'SELECT role FROM users WHERE name = ? AND password = ?',
+      'SELECT role, name FROM users WHERE name = ? AND password = ?',
       [name, password]
     );
 
     if (rows.length > 0) {
-      return { success: true, role: rows[0].role };
+      return { success: true, data: rows[0] };
     } else {
       return { success: false };
     }
@@ -22,12 +22,12 @@ async function loginVerify({ name, password }) {
 async function NFCloginVerify({ hash }) {
   try {
     const [rows] = await pool.query(
-      'SELECT role FROM users WHERE hash = ?',
+      'SELECT role, name FROM users WHERE hash = ?',
       [hash]
     );
 
     if (rows.length > 0) {
-      return { success: true, role: rows[0].role };
+      return { success: true, data: rows[0] };
     } else {
       return { success: false };
     }
