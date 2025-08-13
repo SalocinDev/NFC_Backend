@@ -1,0 +1,12 @@
+Ports
+    Main/Backend		    :3000
+    Development/Frontend	:5173
+    Code-Server             :8080
+
+IP Addresses (Zerotier)
+    Code-Server via Debian	:172.26.71.43 (Password: 12345)
+    Laptop ni Jed		    :172.26.248.50
+    PC ni Kulas		        :172.26.13.248
+    PC ni JM		        :172.26.21.211
+    Laptop ni Jet		    :172.26.216.153
+    Laptop ni Kulas		    :172.26.82.39

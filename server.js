@@ -25,7 +25,8 @@ const viteReactDist = path.join(__dirname, 'dist');
 const allowedOrigins = [
   "http://172.26.82.39:5173",
   "http://localhost:5173",
-  "http://172.26.21.211/5173"
+  "http://172.26.21.211/5173",
+  
 ];
 
 app.use(cors({
@@ -151,7 +152,8 @@ app.get('/get-session', (req, res) => {
   if (req.session?.login?.userID) {
     res.json({
       loggedIn: true,
-      user: req.session.login.userID
+      user: req.session.login.userID,
+      sessionID: req.session.id
     });
   } else {
     console.log("No user logged in.");
