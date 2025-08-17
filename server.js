@@ -14,19 +14,22 @@ const path = require('path'); // path module for node
 const cors = require('cors'); // cors
 const { corsOptions } = require('./CORS/corswhitelist')
 const app = express(); // instantiate express
-/* const ip = "172.26.82.39"; */
 const port = 3000;
 
 // prepare path
 const indexHTML = path.join(__dirname, 'public', 'index.html');
 const viteReactDist = path.join(__dirname, 'dist');
 /* const viteReactHtml = path.join(__dirname, 'dist', 'index.html'); */
-
 const allowedOrigins = [
-  "http://172.26.82.39:5173",
-  "http://localhost:5173",
-  "http://172.26.21.211/5173",
-  
+  "http://localhost:5173", 
+  "http://172.26.82.39:5173",     //Nick Laptop
+  "http://172.26.71.43:5173",     //Nick Laptop (Debian)
+  "http://172.26.13.248:5173",    //Nick PC
+  "http://172.26.101.94:5173",    //Nick PC (Debian)
+  "http://172.26.21.211:5173",    //JM PC
+  "http://172.26.248.50:5173",    //Jed Laptop
+  "http://172.26.216.153:5173",   //Jet Laptop (Debian)
+  "http://172.23.80.1:5173/"      //idk who pero pc ko
 ];
 
 app.use(cors({
@@ -115,7 +118,7 @@ app.post('/login-verify', async (req, res) => {
       }
       const id = await getUserID(name);
       req.session.login = { userID: id };
-      req.session.cookie.expires = new Date(Date.now() + 1000 * 60); // expires in 1 minute
+      req.session.cookie.expires = new Date(Date.now() + 1000 * 60 * 60); // expires in 1 minute
 
 
       return res.status(200).json(result);  // { success: true, role: '...' }
@@ -131,7 +134,7 @@ app.post('/login-verify', async (req, res) => {
 
       const id = await getUserID_NFC(hash);
       req.session.login = { userID: id };
-      req.session.cookie.expires = new Date(Date.now() + 1000 * 60); // expires in 1 minute
+      req.session.cookie.expires = new Date(Date.now() + 1000 * 60 * 60); // expires in 1 minute
 
 
       return res.status(200).json(result);  // { success: true, role: '...' }
