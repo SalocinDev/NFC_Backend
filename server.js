@@ -178,6 +178,6 @@ app.post('/logout', (req, res) =>{
 })
 
 // assign port to listen
-app.listen(port, /* ip, */ () => {
-  console.log(`NFC server running at http://localhost:${port}`);
+app.listen(port, "0.0.0.0", () => {
+  console.log(`NFC server running at ${port}`);
 });
