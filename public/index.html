@@ -17,6 +17,8 @@
   <p><strong>Name:</strong> <span id="name">Waiting for Card...</span></p>
   <p><strong>Role:</strong> <span id="role">Waiting for Card...</span></p>
   <p><strong>Password:</strong> <span id="pass">Waiting for Card...</span></p>
+  <p><strong>Session:</strong> <span id="sess">...</span></p>
+  <button onclick=getSessions()>Get Sessions</button>
   <button onclick=fetchCardData()>Refresh</button>
   <button onclick=getReaderStatus()>Get Reader Status</button>
   <p><strong>Write Into Card:</strong></p>
@@ -27,11 +29,12 @@
 
   <script>
     let userID = document.getElementById('userID');
-      let hash = document.getElementById('hash');
-      let card = document.getElementById('card');
-      let name = document.getElementById('name');
-      let role = document.getElementById('role');
-      let pass = document.getElementById('pass');
+    let hash = document.getElementById('hash');
+    let card = document.getElementById('card');
+    let name = document.getElementById('name');
+    let role = document.getElementById('role');
+    let pass = document.getElementById('pass');
+    let sess = document.getElementById('sess');
 
     async function getReaderStatus() {
       try {
@@ -153,6 +156,22 @@
       }
     }
 
+    async function getSessions() {
+      try {
+        const res = await fetch('/current-sessions');
+        const data = await res.json();
+
+        if (data) {
+          // Convert object to readable string
+          sess.textContent = JSON.stringify(data, null, 2);
+        } else {
+          sess.textContent = 'No sessions found';
+        }
+      } catch (err) {
+        console.error("Error fetching sessions:", err);
+        sess.textContent = 'Error fetching sessions';
+      }
+    }
   </script>
 </body>
 </html>

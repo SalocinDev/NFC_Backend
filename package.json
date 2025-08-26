@@ -4,7 +4,8 @@
   "main": "server.js",
   "scripts": {
     "devStart": "nodemon server.js",
-    "start": "node server.js"
+    "start": "node server.js",
+    "ngrok": "ngrok http --url=seriously-trusting-octopus.ngrok-free.app 3000"
   },
   "keywords": [],
   "author": "",

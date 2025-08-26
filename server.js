@@ -8,7 +8,7 @@ const { writeNFC } = require('./NFC/nfc_write'); // nfc wrtie function
 const { readNFC }  = require('./NFC/nfc_read'); // nfc read function
 const { loginVerify, NFCloginVerify } = require('./SQL/loginVerify');
 const { getKey } = require("./Crypto/getKey");
-const { getUserID, getUserID_NFC, getInfo } = require("./SQL/SQL-utils");
+const { getUserID, getUserInfoviaHash, getInfo } = require("./SQL/SQL-utils");
 const bodyParser = require('body-parser'); // for json
 const path = require('path'); // path module for node
 const cors = require('cors'); // cors
@@ -21,16 +21,41 @@ const indexHTML = path.join(__dirname, 'public', 'index.html');
 const viteReactDist = path.join(__dirname, 'dist');
 /* const viteReactHtml = path.join(__dirname, 'dist', 'index.html'); */
 const allowedOrigins = [
-  "http://localhost:5173", 
-  "http://172.26.82.39:5173",     //Nick Laptop
-  "http://172.26.71.43:5173",     //Nick Laptop (Debian)
-  "http://172.26.13.248:5173",    //Nick PC
-  "http://172.26.101.94:5173",    //Nick PC (Debian)
-  "http://172.26.21.211:5173",    //JM PC
-  "http://172.26.248.50:5173",    //Jed Laptop
-  "http://172.26.216.153:5173",   //Jet Laptop (Debian)
-  "http://172.23.80.1:5173/"      //idk who pero pc ko
+  "http://localhost:5000", 
+  "http://172.26.82.39:5000",     //Nick Laptop
+  "http://172.26.71.43:5000",     //Nick Laptop (Debian)
+  "http://172.26.13.248:5000",    //Nick PC
+  "http://172.26.101.94:5000",    //Nick PC (Debian)
+  "http://172.26.21.211:5000",    //JM PC
+  "http://172.26.248.50:5000",    //Jed Laptop
+  "http://172.26.216.153:5000",   //Jet Laptop (Debian)
+  "http://172.23.80.1:5000/",      //idk who pero pc ko
+  "http://localhost:5001", 
+  "http://172.26.82.39:5001",     //Nick Laptop
+  "http://172.26.71.43:5001",     //Nick Laptop (Debian)
+  "http://172.26.13.248:5001",    //Nick PC
+  "http://172.26.101.94:5001",    //Nick PC (Debian)
+  "http://172.26.21.211:5001",    //JM PC
+  "http://172.26.248.50:5001",    //Jed Laptop
+  "http://172.26.216.153:5001",   //Jet Laptop (Debian)
+  "http://172.23.80.1:5001/"      //idk who pero pc ko
 ];
+
+const MemoryStore = session.MemoryStore;
+const store = new MemoryStore();
+
+app.use(session({
+  name: 'anongginagawamodito',
+  secret: getKey(),
+  saveUninitialized: false,
+  resave: false,
+  store: store,
+  cookie: {
+    maxAge: 1000 * 60,
+    httpOnly: true,
+    secure: false
+  }
+}));
 
 app.use(cors({
   origin: function (origin, callback) {
@@ -44,17 +69,6 @@ app.use(cors({
 }));
 
 app.use(bodyParser.json()); // ready json parser
-app.use(session({
-  name: 'anongginagawamodito',
-  secret: getKey(),
-  saveUninitialized: false,
-  resave: false,
-  cookie: {
-    maxAge: 1000 * 60,
-    httpOnly: true,
-    secure: false
-  }
-}));
 app.use(express.static(viteReactDist)); // to serve vite-react built files
 
 // make express js api end point at /write-nfc
@@ -117,7 +131,7 @@ app.post('/login-verify', async (req, res) => {
         return res.status(401).json({ error: 'Invalid credentials' });
       }
       const id = await getUserID(name);
-      req.session.login = { userID: id };
+      req.session.login = { userID: id, name };
       req.session.cookie.expires = new Date(Date.now() + 1000 * 60 * 60); // expires in 1 minute
 
 
@@ -132,8 +146,8 @@ app.post('/login-verify', async (req, res) => {
         return res.status(401).json({ error: 'Invalid NFC hash' });
       }
 
-      const id = await getUserID_NFC(hash);
-      req.session.login = { userID: id };
+      const userInfo = await getUserInfoviaHash(hash);
+      req.session.login = { userID: userInfo.userID, name: userInfo.name };
       req.session.cookie.expires = new Date(Date.now() + 1000 * 60 * 60); // expires in 1 minute
 
 
@@ -164,6 +178,20 @@ app.get('/get-session', (req, res) => {
   }
 });
 
+app.get('/current-sessions', (req, res) => {
+  store.all((err, sessions) => {
+    if (err) {
+      console.error("Error fetching sessions:", err);
+      return res.status(500).json({ error: "Failed to fetch sessions" });
+    }
+    const activeUsers = Object.values(sessions)
+      .filter(sess => sess.login)
+      .map(sess => sess.login); 
+
+    res.json({ activeUsers });
+  });
+});
+
 
 app.post('/logout', (req, res) =>{
   req.session.destroy(err => {
@@ -176,6 +204,8 @@ app.post('/logout', (req, res) =>{
     res.json({ success: true });
   });
 })
+
+app.up
 
 // assign port to listen
 app.listen(port, "0.0.0.0", () => {

@@ -19,15 +19,15 @@ async function getUserID(data) {
     }
 }
 
-async function getUserID_NFC(data) {
+async function getUserInfoviaHash(data) {
     try {
         const [rows] = await pool.query(
-        'SELECT userID FROM users WHERE hash = ?',
+        'SELECT userID, name FROM users WHERE hash = ?',
         [data]
         );
 
         if (rows.length > 0) {
-        return rows[0].userID;
+        return rows[0];
         } else {
         return;
         }
@@ -59,6 +59,6 @@ async function getInfo(data){
 
 module.exports = {
     getUserID,
-    getUserID_NFC,
+    getUserInfoviaHash,
     getInfo
 }
