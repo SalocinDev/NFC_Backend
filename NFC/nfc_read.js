@@ -1,6 +1,6 @@
 const { NFC } = require('nfc-pcsc')
 const { isNTAG215 } = require('../nfc_utils/checkCard');
-const { getHashfromDB } = require('../nfc_utils/sqlNFClogic')
+const { getTokenfromDB } = require('../SQL/sqlNFClogic')
 
 // prepare nfc readable area
 const startPage = 4;
@@ -44,33 +44,40 @@ function readNFC() {
           }
           
           // extracts hash from the parsed json and puts it into a local value
-          const hash = json.hash;
+          const token = json.token;
           
-          // validate there's a hash
-          if (!hash) {
+          // validate there's a token
+          if (!token) {
             reader.close();
-            return resolve({ valid: false, data: null }); // invalid: no hash
+            return resolve({ valid: false, data: null, message: "no token" }); // invalid: no hash
           }
 
-          // gets hash from db
-          const getHash = await getHashfromDB(hash);
-          const hashExists = getHash.hashReal;
-          const userID = getHash.userID;
-          const name = getHash.name;
-          const role = getHash.role;
-          const pass = getHash.pass;
-          reader.close();
+          // gets token from db
+          const getToken = await getTokenfromDB(token);
+          if (getToken.tokenReal){
+            const tokenExists = getToken.tokenReal;
+            const token = getToken.data.nfc_token;
+            const userID = getToken.data.user_id;
+            const fName = getToken.data.user_firstname;
+            const mName = getToken.data.user_middlename;
+            const lName = getToken.data.user_lastname;
+            reader.close();
+            
+            // return if hash exists in db
+            return resolve({
+              valid: tokenExists,
+              token: token,
+              userID: userID,
+              firstName: fName,
+              middleName: mName,
+              lastName: lName
+            });
 
-          // return if hash exists in db
-          return resolve({
-            valid: hashExists,
-            userID: userID,
-            name: name,
-            role: role,
-            pass: pass,
-            data: json
-          });
-
+          } else {
+            reader.close()
+            return resolve({ valid: false, data: null , error: "data null"})
+          }
+            
         } catch (err) { // error catching
           reader.close();
           return resolve({ valid: false, data: null });

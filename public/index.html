@@ -17,6 +17,7 @@
   <p><strong>Name:</strong> <span id="name">Waiting for Card...</span></p>
   <p><strong>Role:</strong> <span id="role">Waiting for Card...</span></p>
   <p><strong>Password:</strong> <span id="pass">Waiting for Card...</span></p>
+  <p><strong>NFC Token:</strong> <span id="tokn">Waiting for Card...</span></p>
   <p><strong>Session:</strong> <span id="sess">...</span></p>
   <button onclick=getSessions()>Get Sessions</button>
   <button onclick=fetchCardData()>Refresh</button>
@@ -35,10 +36,11 @@
     let role = document.getElementById('role');
     let pass = document.getElementById('pass');
     let sess = document.getElementById('sess');
+    let tokn = document.getElementById('tokn');
 
     async function getReaderStatus() {
       try {
-        const res = await fetch('/check-reader');
+        const res = await fetch('/nfc/check-reader');
         const data = await res.json();
 
         if(data.connected === true){
@@ -64,27 +66,31 @@
       name.textContent = 'Waiting for Card...';
       role.textContent = 'Waiting for Card...';
       pass.textContent = 'Waiting for Card...';
-
+      tokn.textContent = 'Waiting for Card...';
+      
       try {
-        const res = await fetch('/read-nfc');
+        const res = await fetch('/nfc/read');
         const data = await res.json();
+
         document.getElementById('card').textContent = 'Reading...';
-        if (data.valid && data.data) {
-          userID.textContent = data.userID;
-          hash.textContent = data.data.hash;
+
+        if (data && data.valid) {
+          userID.textContent = data.userID ?? 'N/A';
+          hash.textContent = data.hash ?? 'No hash'; // ✅ fix here
           card.textContent = 'Read';
-          name.textContent = data.name;
-          role.textContent = data.role;
-          pass.textContent = data.pass;
-          
-        } else if (data.data) {
+          name.textContent = data.firstName ?? 'N/A';
+          role.textContent = data.middleName ?? 'N/A';
+          pass.textContent = data.lastName ?? 'N/A';
+          tokn.textContent = data.token ?? 'N/A';
+
+        } else if (data && !data.valid) {
           userID.textContent = 'Invalid card data';
-          hash.textContent = `Couldn't fetch`
+          hash.textContent = `Couldn't fetch`;
           card.textContent = 'Read';
           name.textContent = 'Invalid card data';
           role.textContent = 'Invalid card data';
           pass.textContent = 'Invalid card data';
-          
+
         } else {
           userID.textContent = 'Waiting for Card...';
           hash.textContent = 'Waiting for Card...';
@@ -94,8 +100,9 @@
           pass.textContent = 'Waiting for Card...';
         }
       } catch (err) {
+        console.error("Card read error:", err); // 👈 log actual error
         userID.textContent = 'Error reading card';
-        hash.textContent = `Could't fetch`;
+        hash.textContent = `Couldn't fetch`;
         card.textContent = 'Error reading card';
         name.textContent = 'Error reading card';
         role.textContent = 'Error reading card';
@@ -129,7 +136,7 @@
       cardElem.textContent = 'Writing to card...';
 
       try {
-        const res = await fetch('/write-nfc', {
+        const res = await fetch('/nfc/write', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(jsonData),
@@ -154,24 +161,21 @@
       } finally {
         btn.textContent = 'Write';
       }
-    }
+    };
 
     async function getSessions() {
       try {
-        const res = await fetch('/current-sessions');
-        const data = await res.json();
-
-        if (data) {
-          // Convert object to readable string
-          sess.textContent = JSON.stringify(data, null, 2);
+        const result = await fetch("/session/current-sessions", { credentials: "include" });
+        if (!result) {
+          sess.textContent = result;
         } else {
-          sess.textContent = 'No sessions found';
-        }
+          sess.textContent = result;
+        };
       } catch (err) {
-        console.error("Error fetching sessions:", err);
-        sess.textContent = 'Error fetching sessions';
+        sess.textContent = "..."
       }
-    }
+    };
+    
   </script>
 </body>
 </html>

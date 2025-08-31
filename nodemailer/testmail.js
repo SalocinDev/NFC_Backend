@@ -1,30 +1,34 @@
 const nodemailer = require("nodemailer");
+const { sendOTPthroughMail } = require("./sendOTP");
 
 const email = "nicholaslonganilla@gmail.com";
-const password = "Nicsalocin@92";
+const password = "vtdc qfgx igsn urzn";
 
 const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      type: "OAuth2",
-      user: email,
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      refreshToken: process.env.GOOGLE_REFRESH_TOKEN,
-    },
-  });
-  
-  let mailOptions = {
-    from: email,
-    to: 'xidexi4014@hostbyt.com',
-    subject: 'Sending Email using Node.js',
-    text: 'tite'
-  };
-  
-  transporter.sendMail(mailOptions, function(error, info){
-    if (error) {
-      console.log(error);
-    } else {
-      console.log('Email sent: ' + info.response);
-    }
-  });
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false, // use false for STARTTLS; true for SSL on port 465
+  auth: {
+    user: email,
+    pass: password,
+  }
+});
+
+// Configure the mailoptions object
+const mailOptions = {
+  from: email,
+  to: email,
+  subject: 'Sending Email using Node.js',
+  text: 'Test 1'
+};
+
+// Send the email
+transporter.sendMail(mailOptions, function(error, info){
+  if (error) {
+    console.log('Error:', error);
+  } else {
+    console.log('Email sent: ', info.response);
+  }
+});
+
+/* sendOTPthroughMail("nicholaslonganilla@gmail.com"); */
