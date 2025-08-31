@@ -1,10 +1,10 @@
-const pool = require('../SQL/conn');
+const pool = require('./conn');
 
-async function writetoDB(hash, role, name, password) {
+async function writetoDB(user_id, nfc_token) {
     try {
         const [result] = await pool.query(
-            'INSERT INTO users (hash, role, name, password) VALUES (?, ?, ?, ?)',
-            [hash, role, name, password]
+            'INSERT INTO library_user_table (user_id, nfc_token) VALUES (?, ?)',
+            [user_id, nfc_token]
         );
     
         if (result.affectedRows > 0) {
@@ -18,18 +18,18 @@ async function writetoDB(hash, role, name, password) {
     }
   }
     
-async function getHashfromDB(hash) {
+async function getTokenfromDB(hash) {
     try {
         const [rows] = await pool.query(
-            'SELECT userID, name, role, password FROM users WHERE hash = ?',
+            'SELECT user_id, user_firstname, user_middlename, user_lastname, nfc_token FROM library_user_table WHERE nfc_token = ?',
             [hash]
     );
         if (rows.length > 0) {
             console.log(rows[0]);
             
-            return { hashReal: true, userID: rows[0].userID, name: rows[0].name, role: rows[0].role, pass: rows[0].password };
+            return { tokenReal: true, data: rows[0] };
     }     else {
-            return { hashReal: false };
+            return { tokenReal: false };
     }
   
     } catch (err) {
@@ -42,5 +42,5 @@ async function getHashfromDB(hash) {
 
 module.exports = {
     writetoDB,
-    getHashfromDB
+    getTokenfromDB
 };
