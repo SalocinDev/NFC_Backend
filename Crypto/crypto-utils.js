@@ -1,7 +1,7 @@
 const crypto = require("crypto")
 
 let cachedKey = null;
-let generatedOTP = null;
+const OTPStore = new Map();
 
 function genRandom(x){
     return salt = crypto.randomBytes(16*x).toString("hex");
@@ -31,25 +31,55 @@ const makeOTP = () => new Promise((res, rej) =>
     })
 );
 
-async function generateOTPandStoreOTP() {
+async function generateOTPandStoreOTP(email) {
     try {
-        generatedOTP = await makeOTP();
-        console.log("Generated OTP:", generatedOTP);
-        return generatedOTP;
+        const otp = await makeOTP();
+        const expiry = Date.now() + 15 * 60 * 1000;
+
+        OTPStore.set(email, { otp, expiry });
+        console.log(`Generated OTP for ${email}:`, otp);
+
+        return otp;
     } catch (err) {
         console.error("Error generating OTP:", err);
+        throw err;
     }
 }
 
-function getOTP() {
-  return generatedOTP;
+function getOTP(email) {
+    const data = OTPStore.get(email);
+    if (!data) return null;
+
+    if (Date.now() > data.expiry) {
+        OTPStore.delete(email);
+        return null;
+    }
+    return data.otp;
 }
 
+function verifyOTP(email, otpFromRequest) {
+    const data = OTPStore.get(email);
+    if (!data) return { verified: false, message: "No OTP found" };
+
+    if (Date.now() > data.expiry) {
+        OTPStore.delete(email);
+        return { verified: false, message: "OTP expired" };
+    }
+
+    if (otpFromRequest !== data.otp) {
+        return { verified: false, message: "Invalid OTP" };
+    }
+
+    OTPStore.delete(email);
+    return { verified: true, message: "OTP verified" };
+}
 module.exports = {
     genRandom,
     getKey,
     hashAll,
     makeOTP,
 	generateOTPandStoreOTP,
-	getOTP
+	getOTP,
+    verifyOTP,
+    OTPStore
 };

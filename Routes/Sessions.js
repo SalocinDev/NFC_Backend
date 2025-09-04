@@ -17,7 +17,7 @@ module.exports = (store) => {
       });
     } else {
       console.log("No user logged in.");
-      res.json({ loggedIn: false });
+      res.status(401).json({ loggedIn: false });
     }
   });
 

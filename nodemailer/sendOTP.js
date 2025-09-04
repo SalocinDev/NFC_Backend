@@ -1,13 +1,14 @@
 const nodemailer = require("nodemailer");
-const { makeOTP } = require("../Crypto/crypto-utils");
+const { makeOTP, generateOTPandStoreOTP } = require("../Crypto/crypto-utils");
+const credentials = require("./credentials")
 
-const email = "nicholaslonganilla@gmail.com";
-const password = "vtdc qfgx igsn urzn";
+const email = credentials.email;
+const password = credentials.password;
 
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
     port: 587,
-    secure: false, // STARTTLS
+    secure: false,
     auth: {
       user: email,
       pass: password,
@@ -15,29 +16,34 @@ const transporter = nodemailer.createTransport({
 });
 
 async function sendOTPthroughMail(recipient) {
-    const OTP = await makeOTP(); 
-    const mailOptions = {
-        from: email,
-        to: recipient,
-        subject: 'This da OTP',
-        text: OTP
-    };
+    try {
+        const OTP = await generateOTPandStoreOTP(recipient);
 
-    return new Promise((resolve, reject) => {
-        transporter.sendMail(mailOptions, function(error, info){
-            if (error) {
-                console.log('Error:', error);
-                reject(error);
-            } else {
-                console.log('Email sent: ', info.response);
+        const mailOptions = {
+            from: email,
+            to: recipient,
+            subject: "Your OTP Code",
+            text: `Your OTP is: ${OTP}\n\nThis code will expire in 15 minutes.`
+        };
+
+        return new Promise((resolve, reject) => {
+            transporter.sendMail(mailOptions, (error, info) => {
+                if (error) {
+                    console.error("Error sending OTP email:", error);
+                    return reject(error);
+                }
+                console.log("Email sent:", info.response);
                 resolve({ info, OTP });
-            }
+            });
         });
-    });
+    } catch (err) {
+        console.error("Error generating/sending OTP:", err);
+        throw err;
+    }
 }
 
 /* (async () => {
-  sendOTPthroughMail("orvierepole50@gmail.com")
+  sendOTPthroughMail("nicholaslonganilla@gmail.com")
     .then(result => {
       console.log("email sent", result);
     })

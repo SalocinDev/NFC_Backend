@@ -166,10 +166,13 @@
     async function getSessions() {
       try {
         const result = await fetch("/session/current-sessions", { credentials: "include" });
-        if (!result) {
-          sess.textContent = result;
+        const data = await result.json();
+        if (!data) {
+          sess.textContent = "Waiting...";
         } else {
-          sess.textContent = result;
+          sess.textContent = data.activeUsers
+          .map(u => `(${u.user_id}) ${u.user_firstname} ${u.user_middlename} ${u.user_lastname}`)
+          .join(", ");
         };
       } catch (err) {
         sess.textContent = "..."

@@ -144,3 +144,5 @@ dist/assets/W-logo-6A5019Ov.png
 dist/assets/W-logo2-Bp5ds-Ui.png
 dist/assets/index-DdAxDt9j.js
 dist/assets/index-rt_5o3W8.css
+
+nodemailer/credentials.js
