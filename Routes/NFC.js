@@ -1,45 +1,54 @@
 const express = require('express');
 const routes = express.Router();
 
-const { checkReader } = require('../NFC/checkReader'); // check if reader is connected
-const { writeNFC } = require('../NFC/nfc_write'); // nfc wrtie function
-const { readNFC }  = require('../NFC/nfc_read'); // nfc read function
-const { genRandom }  = require('../Crypto/crypto-utils');
+let readerConnected = false;
+let checkReader, writeNFC, readNFC;
 
-// make express js api end point at /write
-routes.post('/write', async (req, res) => {  
-  try {
-    const payload = req.body;
+try {
+  checkReader = require('../NFC/checkReader').checkReader;
+  writeNFC = require('../NFC/nfc_write').writeNFC;
+  readNFC = require('../NFC/nfc_read').readNFC;
 
-    if (!payload || typeof payload !== 'object') {
-      return res.status(400).json({ success: false, message: 'Invalid or missing JSON payload' });
+  readerConnected = checkReader();
+} catch (err) {
+  console.warn("No NFC reader detected or pcsclite not available:", err.message);
+  readerConnected = false;
+}
+
+if (readerConnected) {
+  routes.post('/write', async (req, res) => {  
+    try {
+      const payload = req.body;
+      if (!payload || typeof payload !== 'object') {
+        return res.status(400).json({ success: false, message: 'Invalid or missing JSON payload' });
+      }
+
+      await writeNFC(payload);
+      res.status(200).json({ success: true, message: 'NFC card written successfully' });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ success: false, message: 'Failed to write NFC card' });
     }
+  });
 
-    await writeNFC(payload);
+  routes.get('/read', async (req, res) => {
+    try {
+      const data = await readNFC();
+      res.status(200).json(data);
+    } catch (err) {
+      console.error(err);
+      res.status(500).send('Failed to read NFC card');
+    }
+  });
 
-    res.status(200).json({ success: true, message: 'NFC card written successfully' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: 'Failed to write NFC card' });
-  }
-});
+  routes.get('/check-reader', (req, res) => {
+    res.json({ connected: checkReader() });
+  });
 
-
-// same with /write api endpoint
-routes.get('/read', async (req, res) => {
-  try {
-    const data = await readNFC();
-    res.status(200).json(data);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Failed to read NFC card');
-  }
-});
-
-// to check if reader is connected (for debugging)
-routes.get('/check-reader', (req, res) => {
-  const isConnected = checkReader();
-  res.json({ connected: isConnected });
-});
+} else {
+  routes.all(['/', '/write', '/read', '/check-reader'], (req, res) => {
+    res.status(503).json({ success: false, message: "No NFC reader attached" });
+  });
+}
 
 module.exports = routes;

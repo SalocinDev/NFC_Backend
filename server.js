@@ -20,6 +20,9 @@ const viteReactDist = path.join(__dirname, 'dist');
 /* const viteReactHtml = path.join(__dirname, 'dist', 'index.html'); */
 const allowedOrigins = [
   "http://localhost:3000",
+  "http://172.26.1.2:3000",
+  "http://172.26.1.2:5000",
+  "http://172.26.1.2:5001",
   "http://172.26.13.248:3000",
   "http://localhost:5000", 
   "http://172.26.82.39:5000",     //Nick Laptop

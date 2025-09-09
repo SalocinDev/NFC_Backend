@@ -2,9 +2,9 @@ const mysql2 = require('mysql2/promise');
 
 const database = "librarydatabase";
 const pool = mysql2.createPool({
-  host: '172.26.13.248',
+  host: '172.26.1.2',
   user: 'Capstone',
-  password: '12345',
+  password: 'P4g*Ex]vwW!D[zof',
   database: database,
   waitForConnections: true,
   connectionLimit: 10,

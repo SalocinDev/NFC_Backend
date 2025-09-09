@@ -114,21 +114,34 @@ routes.post('/login-verify', async (req, res) => {
 routes.post('/sign-up', async (req, res) => {
   try {
     const { email, password, firstName, middleName, lastName, dob, gender, contactNumber, school } = req.body;
-    console.log("Signing up with :"+ email, password, firstName, middleName, lastName, dob, gender, contactNumber, school);
-    if (email && password && firstName && middleName && lastName) {
-      const result = await signUp( email, password, firstName, middleName, lastName, dob, gender, contactNumber, school);
-      if (!result.success) {
-        if (result.message.includes("already registered")) {
-          return res.status(400).json({ success: false, message: result.message, user_id: result.userId });
-        }
-        return res.status(401).json({ error: 'Invalid credentials' });
-      }
-      console.log("Success fully Signed up!");
+    console.log("Signing up with:", email, password, firstName, middleName, lastName, dob, gender, contactNumber, school);
 
-      res.status(201).json({ success: true, message: "Successfully signed up!" });
+    if (!(email && password && firstName && middleName && lastName)) {
+      return res.status(400).json({ success: false, message: "Missing required fields" });
     }
+
+    const accountExisting = await checkAcc({ email });
+
+    if (!accountExisting.success) {
+      return res.status(500).json({ success: false, message: accountExisting.error || "Error checking account" });
+    }
+
+    if (accountExisting.exists) {
+      return res.status(409).json({ success: false, message: accountExisting.message });
+    }
+    //signing up
+    const result = await signUp(email, password, firstName, middleName, lastName, dob, gender, contactNumber, school);
+
+    if (!result.success) {
+      return res.status(500).json({ success: false, message: "Error in signup" });
+    }
+
+    console.log("Successfully signed up!");
+    return res.status(201).json({ success: true, message: "Successfully signed up!" });
+
   } catch (error) {
-    res.status(500).json({ success: false, message: "Server error during sign-up", error });
+    console.error("Signup error:", error);
+    return res.status(500).json({ success: false, message: "Server error during sign-up", error: error.message });
   }
 });
 
