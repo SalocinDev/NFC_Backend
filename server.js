@@ -15,7 +15,7 @@ const port = 3000;
 /* const aiRoute = require('./Routes/AI') */
 
 // prepare path
-const indexHTML = path.join(__dirname, 'public', 'index.html');
+const indexHTML = path.join(__dirname, 'index.html');
 const viteReactDist = path.join(__dirname, 'dist');
 /* const viteReactHtml = path.join(__dirname, 'dist', 'index.html'); */
 const allowedOrigins = [
