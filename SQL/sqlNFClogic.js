@@ -1,22 +1,4 @@
 const pool = require('./conn');
-
-async function writetoDB(user_id, nfc_token) {
-    try {
-        const [result] = await pool.query(
-            'INSERT INTO library_user_table (user_id, nfc_token) VALUES (?, ?)',
-            [user_id, nfc_token]
-        );
-    
-        if (result.affectedRows > 0) {
-            return { success: true };
-        } else {
-            return { success: false, message: 'User not found' };
-        }
-    } catch (err) {
-        console.error('Error in writetoDB:', err);
-        throw err;
-    }
-  }
     
 async function getTokenfromDB(hash) {
     try {
@@ -41,6 +23,5 @@ async function getTokenfromDB(hash) {
 /* getHashfromDB("e226585688a7f2b269ac7bc638f4f637d782dfd63334dbf2eaae10ba55add83a") */
 
 module.exports = {
-    writetoDB,
     getTokenfromDB
 };

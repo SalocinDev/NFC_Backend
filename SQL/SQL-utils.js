@@ -136,11 +136,30 @@ async function getBooks() {
     };
 };
 
+async function writetoDB(data) {
+    try {
+        const [result] = await pool.query(
+            `INSERT INTO library_user_table (user_id, nfc_token) VALUES (?, ?)`,
+            [user_id, nfc_token]
+        );
+    
+        if (result.affectedRows > 0) {
+            return { success: true };
+        } else {
+            return { success: false, message: 'User not found' };
+        }
+    } catch (err) {
+        console.error('Error in writetoDB:', err);
+        throw err;
+    }
+}
+
 module.exports = {
     getUserID,
     getUserInfoviaHash,
     getBooks,
     getSalt,
     checkIfExisting,
-    getHashedPasswordviaSalt
+    getHashedPasswordviaSalt,
+    writetoDB
 };

@@ -81,12 +81,12 @@ app.use(express.static(viteReactDist)); // to serve vite-react built files
 const nfcRoute = require('./Routes/NFC');
 const accRoute = require('./Routes/Acc');
 const sessionRoute = require('./Routes/Sessions')(store);
-const sqlRoute = require('./Routes/SQL');
+const libRoute = require('./Routes/Library');
 
 app.use('/nfc', nfcRoute);
 app.use('/acc', accRoute);
 app.use('/session', sessionRoute);
-app.use('/sql', sqlRoute);
+app.use('/lib', libRoute);
 /* app.use('/ai', aiRoute); */
 
 // main page for debugging

@@ -1,5 +1,6 @@
 const express = require('express');
 const { getBooks } = require('../SQL/SQL-utils');
+const { writetoDB } = require('../SQL/sqlNFClogic');
 const routes = express.Router();
 
 routes.get('/get-books', async (req, res) => {
@@ -20,5 +21,20 @@ routes.get('/get-books', async (req, res) => {
   }
 });
 
+routes.get('/services', async (req, res) => {
+  try {
+    const {...data} = req.body;
+    if (!data || Object.keys(data).length === 0){
+      return res.status(400).json({ success: false, message: "No services chosen" })
+    }
+
+    const result = await writetoDB(data);
+    if (!result){
+      return res.status(500).json({ success: false, message: "Write to database error" })
+    }
+  } catch (error) {
+    
+  }
+});
 
 module.exports = routes;
