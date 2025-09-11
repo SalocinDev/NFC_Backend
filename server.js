@@ -21,29 +21,9 @@ const viteReactDist = path.join(__dirname, 'dist');
 /* const viteReactHtml = path.join(__dirname, 'dist', 'index.html'); */
 const allowedOrigins = [
   "https://phalluis.github.io",
+  "https://seriously-trusting-octopus.ngrok-free.app",
   "http://localhost:3000",
-  "http://172.26.1.2:3000",
-  "http://172.26.1.2:5000",
-  "http://172.26.1.2:5001",
-  "http://172.26.13.248:3000",
-  "http://localhost:5000", 
-  "http://172.26.82.39:5000",     //Nick Laptop
-  "http://172.26.71.43:5000",     //Nick Laptop (Debian)
-  "http://172.26.13.248:5000",    //Nick PC
-  "http://172.26.101.94:5000",    //Nick PC (Debian)
-  "http://172.26.21.211:5000",    //JM PC
-  "http://172.26.248.50:5000",    //Jed Laptop
-  "http://172.26.216.153:5000",   //Jet Laptop (Debian)
-  "http://172.23.80.1:5000/",      //idk who pero pc ko
-  "http://localhost:5001", 
-  "http://172.26.82.39:5001",     //Nick Laptop
-  "http://172.26.71.43:5001",     //Nick Laptop (Debian)
-  "http://172.26.13.248:5001",    //Nick PC
-  "http://172.26.101.94:5001",    //Nick PC (Debian)
-  "http://172.26.21.211:5001",    //JM PC
-  "http://172.26.248.50:5001",    //Jed Laptop
-  "http://172.26.216.153:5001",   //Jet Laptop (Debian)
-  "http://172.23.80.1:5001/"      //idk who pero pc ko
+  "http://localhost:5000"
 ];
 
 // sessions storage. only exists in memory
@@ -52,6 +32,17 @@ const store = new MemoryStore();
 
 // session details
 app.set("trust proxy", 1); // trust ngrok / reverse proxy
+
+app.use(cors({
+  origin: function(origin, callback) {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) callback(null, true);
+    else callback(new Error("Not allowed by CORS"));
+  },
+  credentials: true
+}));
+
+app.use(bodyParser.json());
 
 app.use(session({
   name: 'anongginagawamodito',
@@ -62,25 +53,21 @@ app.use(session({
   cookie: {
     maxAge: 1000 * 60 * 60,
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production", // true in production, false locally
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax"
+    secure: (req) => {
+      if (process.env.NODE_ENV === 'production') {
+        return req.headers['x-forwarded-proto'] === 'https';
+      }
+      return false; // local dev
+    },
+    sameSite: (req) => {
+      if (process.env.NODE_ENV === 'production') {
+        return req.headers['x-forwarded-proto'] === 'https' ? 'none' : 'lax';
+      }
+      return 'lax';
+    }
   }
 }));
 
-
-
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
-  credentials: true
-}));
-
-app.use(bodyParser.json()); // ready json parser
 app.use(express.static(viteReactDist)); // to serve vite-react built files
 
 // routing
