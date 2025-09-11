@@ -119,6 +119,7 @@ async function checkIfExisting(email){
 }
 //////////////////////////////////////////////////////////////////////////////////
 
+/** original sht may tetest lng */
 async function getBooks() {
     try {
             const [rows] = await pool.query(
@@ -135,6 +136,25 @@ async function getBooks() {
         return { success: false, message: error.message };
     };
 };
+
+/**
+async function getBooks() {
+    try {
+            const [rows] = await pool.query(
+            'SELECT book_table.book_id, book_table.book_title, book_category_table.book_category_id_fk, book_category_table.book_category_table FROM book_tableINNER JOIN book_category_table ON book_table.book_category_id_fk = book_category_table.book_category_id'
+        );
+
+        if (rows.length > 0) {
+            return { success: true, data: rows };
+        } else {
+            return { success: false, message: "No books found" };
+        }
+    } catch (error) {
+        console.error("Error fetching books:", error);
+        return { success: false, message: error.message };
+    };
+};
+*/
 
 async function writetoDB(data) {
     try {
@@ -153,6 +173,8 @@ async function writetoDB(data) {
         throw err;
     }
 }
+
+
 
 module.exports = {
     getUserID,

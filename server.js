@@ -1,5 +1,6 @@
 // dito ang server logic
 // todo: Routing
+require("dotenv").config();
 
 const express = require('express'); // express
 const session = require("express-session"); // express-session
@@ -19,6 +20,7 @@ const indexHTML = path.join(__dirname, 'index.html');
 const viteReactDist = path.join(__dirname, 'dist');
 /* const viteReactHtml = path.join(__dirname, 'dist', 'index.html'); */
 const allowedOrigins = [
+  "https://phalluis.github.io",
   "http://localhost:3000",
   "http://172.26.1.2:3000",
   "http://172.26.1.2:5000",
@@ -49,6 +51,8 @@ const MemoryStore = session.MemoryStore;
 const store = new MemoryStore();
 
 // session details
+app.set("trust proxy", 1); // trust ngrok / reverse proxy
+
 app.use(session({
   name: 'anongginagawamodito',
   secret: getKey(),
@@ -58,10 +62,12 @@ app.use(session({
   cookie: {
     maxAge: 1000 * 60 * 60,
     httpOnly: true,
-    secure: false,
-    sameSite: "lax"
+    secure: process.env.NODE_ENV === "production", // true in production, false locally
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax"
   }
 }));
+
+
 
 app.use(cors({
   origin: function (origin, callback) {
