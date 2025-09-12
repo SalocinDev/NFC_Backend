@@ -120,7 +120,7 @@ async function checkIfExisting(email){
 //////////////////////////////////////////////////////////////////////////////////
 
 /** original sht may tetest lng */
-async function getBooks() {
+/* async function getBooks() {
     try {
             const [rows] = await pool.query(
             'SELECT book_id, book_title, book_description FROM book_table'
@@ -135,9 +135,9 @@ async function getBooks() {
         console.error("Error fetching books:", error);
         return { success: false, message: error.message };
     };
-};
+}; */
 
-/**
+//ver ni orvie
 async function getBooks() {
     try {
             const [rows] = await pool.query(
@@ -154,7 +154,6 @@ async function getBooks() {
         return { success: false, message: error.message };
     };
 };
-*/
 
 async function writetoDB(data) {
     try {
@@ -173,8 +172,6 @@ async function writetoDB(data) {
         throw err;
     }
 }
-
-
 
 module.exports = {
     getUserID,

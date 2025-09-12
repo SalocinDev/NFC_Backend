@@ -3,7 +3,7 @@ const { getBooks } = require('../SQL/SQL-utils');
 const { writetoDB } = require('../SQL/sqlNFClogic');
 const routes = express.Router();
 
-routes.get('/get-books', async (req, res) => {
+routes.post('/get-books', async (req, res) => {
   try {
     const books = await getBooks();
     if (books.success) {
@@ -21,7 +21,7 @@ routes.get('/get-books', async (req, res) => {
   }
 });
 
-routes.get('/services', async (req, res) => {
+routes.post('/services', async (req, res) => {
   try {
     const {...data} = req.body;
     if (!data || Object.keys(data).length === 0){

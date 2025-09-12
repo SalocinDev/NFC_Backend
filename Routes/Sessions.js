@@ -3,25 +3,23 @@ const express = require("express");
 module.exports = (store) => {
   const routes = express.Router();
 
-  routes.get("/get-session", (req, res) => {
-    console.log("Session data:", req.session);
-
-    if (req.session?.login?.user_id) {
-      res.json({
+  routes.post("/get-session", (req, res) => {
+    if (req.session && req.session.login) {
+      res.status(200).json({
         loggedIn: true,
         user: req.session.login.user_id,
         firstName: req.session.login.user_firstname,
         middleName: req.session.login.user_middlename,
         lastName: req.session.login.user_lastname,
-        sessionID: req.session.id
+        sessionID: req.session.id,
       });
     } else {
-      console.log("No user logged in.");
-      res.status(401).json({ loggedIn: false });
+      res.status(200).json({ loggedIn: false, message: "Not Logged in", err: "no req.session.login" });
     }
   });
 
-  routes.get('/current-sessions', (req, res) => {
+
+  routes.post('/current-sessions', (req, res) => {
     store.all((err, sessions) => {
       if (err) {
         console.error("Error fetching sessions:", err);
@@ -31,8 +29,12 @@ module.exports = (store) => {
         .filter(sess => sess.login)
         .map(sess => sess.login); 
 
-      res.json({ activeUsers });
+      res.status(200).json({ activeUsers });
     });
+  });
+
+  routes.get("/session-test", (req, res) => {
+    res.status(200).json(req.session);
   });
 
   return routes;

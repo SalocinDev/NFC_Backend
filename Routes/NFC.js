@@ -31,7 +31,7 @@ if (readerConnected) {
     }
   });
 
-  routes.get('/read', async (req, res) => {
+  routes.post('/read', async (req, res) => {
     try {
       const data = await readNFC();
       res.status(200).json(data);
@@ -41,7 +41,7 @@ if (readerConnected) {
     }
   });
 
-  routes.get('/check-reader', (req, res) => {
+  routes.post('/check-reader', (req, res) => {
     res.json({ connected: checkReader() });
   });
 

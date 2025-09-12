@@ -7,8 +7,6 @@ const { sendOTPthroughMail } = require("../nodemailer/sendOTP")
 const { hashAll, genRandom, verifyOTP, OTPStore  } = require("../Crypto/crypto-utils");
 
 routes.post('/login-verify', async (req, res) => {
-  console.log("Login body:", req.body);
-
   try {
     const { email, password, token } = req.body;
 
@@ -35,17 +33,12 @@ routes.post('/login-verify', async (req, res) => {
       const { user_id, user_firstname, user_middlename, user_lastname } = result.data;
 
       req.session.login = { user_id, user_firstname, user_middlename, user_lastname };
-      req.session.cookie.expires = new Date(Date.now() + 1000 * 60 * 60); // 1 hour
-
+      
       return req.session.save(err => {
         if (err) {
           console.error("Session save error:", err);
-          return res.status(500).json({
-            success: false,
-            error: "Failed to save session"
-          });
+          return res.status(500).json({ success: false, error: "Failed to save session" });
         }
-
         console.log("Session after email login:", req.session);
         res.status(200).json({
           success: true,
@@ -77,17 +70,12 @@ routes.post('/login-verify', async (req, res) => {
       const { user_id, user_firstname, user_middlename, user_lastname } = result.data;
 
       req.session.login = { user_id, user_firstname, user_middlename, user_lastname };
-      req.session.cookie.expires = new Date(Date.now() + 1000 * 60 * 60); // 1 hour
 
       return req.session.save(err => {
         if (err) {
           console.error("Session save error:", err);
-          return res.status(500).json({
-            success: false,
-            error: "Failed to save session"
-          });
+          return res.status(500).json({ success: false, error: "Failed to save session" });
         }
-
         console.log("Session after NFC login:", req.session);
         res.status(200).json({
           success: true,
@@ -106,7 +94,8 @@ routes.post('/login-verify', async (req, res) => {
     console.error("Error in /login-verify:", err);
     res.status(500).json({
       success: false,
-      error: "Internal server error", details: err.message
+      error: "Internal server error",
+      details: err.message
     });
   }
 });
@@ -189,7 +178,6 @@ routes.post('/verify-otp', async (req, res) => {
 
     const normalizedEmail = email.toLowerCase();
     const data = OTPStore.get(normalizedEmail);
-    console.log("[VERIFY-OTP] Lookup for", normalizedEmail, data);
 
     if (!data) {
       return res.status(404).json({ verified: false, message: "No OTP found" });
@@ -210,7 +198,7 @@ routes.post('/verify-otp', async (req, res) => {
       return res.status(500).json({ verified: true, message: "OTP verified, but email update failed" });
     }
 
-    res.json({ verified: true, message: "OTP verified & email marked as verified" });
+    res.status(200).json({ verified: true, message: "OTP verified & email marked as verified" });
   } catch (err) {
     console.error("Error in /verify-otp:", err);
     res.status(500).json({ verified: false, message: "Server error" });

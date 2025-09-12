@@ -13,60 +13,84 @@ const cors = require('cors'); // cors
 const app = express(); // instantiate express
 const port = 3000;
 
-/* const aiRoute = require('./Routes/AI') */
 
 // prepare path
 const indexHTML = path.join(__dirname, 'index.html');
 const viteReactDist = path.join(__dirname, 'dist');
 /* const viteReactHtml = path.join(__dirname, 'dist', 'index.html'); */
+const isProduction = process.env.NODE_ENV === 'production';
+
 const allowedOrigins = [
   "https://phalluis.github.io",
   "https://seriously-trusting-octopus.ngrok-free.app",
-  "http://localhost:3000",
-  "http://localhost:5000"
+  "http://172.26.1.2:3000",
+  "http://172.26.1.2:5000",
+  "https://124.6.136.178"
 ];
 
-// sessions storage. only exists in memory
-const MemoryStore = session.MemoryStore;
-const store = new MemoryStore();
-
-// session details
-app.set("trust proxy", 1); // trust ngrok / reverse proxy
-
+// Dynamic CORS middleware
 app.use(cors({
   origin: function(origin, callback) {
-    if (!origin) return callback(null, true);
+    if (!origin) return callback(null, true); // curl / Postman
     if (allowedOrigins.includes(origin)) callback(null, true);
     else callback(new Error("Not allowed by CORS"));
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization']
 }));
 
+// Body parser
 app.use(bodyParser.json());
 
-app.use(session({
+// Session (after CORS)
+/* app.use(session({
   name: 'anongginagawamodito',
-  secret: getKey(),
+  secret: process.env.SESSION_SECRET || 'shhhhhhhhhhhh',
+  saveUninitialized: false,
+  resave: true,
+  store: store,
+  cookie: {
+    maxAge: 1000 * 60 * 60, // 1 hour
+    httpOnly: true,
+    secure: true,
+    sameSite: 'none'
+    }
+    })); */
+    
+  // sessions storage. only exists in memory
+const MemoryStore = session.MemoryStore;
+const store = new MemoryStore();
+
+app.set("trust proxy", 1); // important when behind ngrok / reverse proxy
+
+app.use(session({
+  name: "anongginagawamodito",
+  secret: process.env.SESSION_SECRET || "shhhhhhhhhhhh",
+  resave: false,
+  saveUninitialized: false,
+  store: store,
+  cookie: {
+    httpOnly: true,
+    secure: isProduction,                    // only secure in prod/https
+    sameSite: isProduction ? "none" : "lax", // none for cross-site https, lax for dev
+    maxAge: 1000 * 60 * 60             // 1 hour
+  }
+}));
+
+/* app.use(session({
+  name: 'anongginagawamodito',
+  secret: process.env.SESSION_SECRET,
   saveUninitialized: false,
   resave: false,
   store: store,
   cookie: {
     maxAge: 1000 * 60 * 60,
     httpOnly: true,
-    secure: (req) => {
-      if (process.env.NODE_ENV === 'production') {
-        return req.headers['x-forwarded-proto'] === 'https';
-      }
-      return false; // local dev
-    },
-    sameSite: (req) => {
-      if (process.env.NODE_ENV === 'production') {
-        return req.headers['x-forwarded-proto'] === 'https' ? 'none' : 'lax';
-      }
-      return 'lax';
-    }
+    secure: isProduction,          // true if production
+    sameSite: isProduction ? "none" : "lax"
   }
-}));
+})); */
 
 app.use(express.static(viteReactDist)); // to serve vite-react built files
 
@@ -75,6 +99,7 @@ const nfcRoute = require('./Routes/NFC');
 const accRoute = require('./Routes/Acc');
 const sessionRoute = require('./Routes/Sessions')(store);
 const libRoute = require('./Routes/Library');
+/* const aiRoute = require('./Routes/AI') */
 
 app.use('/nfc', nfcRoute);
 app.use('/acc', accRoute);
@@ -83,7 +108,7 @@ app.use('/lib', libRoute);
 /* app.use('/ai', aiRoute); */
 
 // main page for debugging
-app.get('/view', (req, res) => {
+/* app.get('/view', (req, res) => {
   res.sendFile(indexHTML, err =>{
     if (err){
       console.log('Error serving file'+ err);
@@ -91,6 +116,17 @@ app.get('/view', (req, res) => {
     } else {
       console.log('File Served');
     }
+  });
+}); */
+app.get('/status', (req, res) => {
+  const headers = req.headers;
+  const origin = req.get('origin');
+
+  res.status(200).json({ 
+    success: true, 
+    system: "online",
+    headers, 
+    origin
   });
 });
 
