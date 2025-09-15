@@ -146,3 +146,5 @@ dist/assets/index-DdAxDt9j.js
 dist/assets/index-rt_5o3W8.css
 
 nodemailer/credentials.js
+
+.env

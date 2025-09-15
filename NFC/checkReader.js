@@ -1,35 +1,30 @@
-const { NFC } = require('nfc-pcsc'); // nfc-pcsc module to use
-let readerAttached = false; // boolean
+const { NFC } = require('nfc-pcsc');
+let readerAttached = false;
 
-const nfc = new NFC(); // instantiate NFC
+const nfc = new NFC();
 
-// fires if nfc reader is detected
-// todo or not: check if nfc reader is supported
-nfc.once('reader', (reader) => {
+nfc.on('reader', (reader) => {
   console.log(`${reader.reader.name} connected`);
   readerAttached = true;
 
-  // once reader disconnect
-  reader.once('end', () => {
+  reader.on('end', () => {
     console.log(`${reader.reader.name} disconnected`);
     readerAttached = false;
   });
 
-  // once reader error
-  reader.once('error', (err) => {
+  reader.on('error', (err) => {
     console.error(`${reader.reader.name} error:`, err);
+    readerAttached = false; // optional: mark as detached on error
   });
 });
 
-// once the nfc errors
-nfc.once('error', (err) => {
+nfc.on('error', (err) => {
   console.error('NFC error:', err);
 });
 
-// simple function to return reader attached
+// function to return reader status
 function checkReader() {
   return readerAttached;
 }
 
-// export checkReader()
 module.exports = { checkReader };

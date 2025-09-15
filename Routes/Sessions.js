@@ -33,7 +33,7 @@ module.exports = (store) => {
     });
   });
 
-  routes.get("/session-test", (req, res) => {
+  routes.post("/session-test", (req, res) => {
     res.status(200).json(req.session);
   });
 

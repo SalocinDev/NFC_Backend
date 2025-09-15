@@ -40,7 +40,7 @@
 
     async function getReaderStatus() {
       try {
-        const res = await fetch('/nfc/check-reader');
+        const res = await fetch('/nfc/check-reader', {method: "POST",});
         const data = await res.json();
 
         if(data.connected === true){
@@ -69,7 +69,7 @@
       tokn.textContent = 'Waiting for Card...';
       
       try {
-        const res = await fetch('/nfc/read');
+        const res = await fetch('/nfc/read', {method: "POST"});
         const data = await res.json();
 
         document.getElementById('card').textContent = 'Reading...';
@@ -165,7 +165,7 @@
 
     async function getSessions() {
       try {
-        const result = await fetch("/session/current-sessions", { credentials: "include" });
+        const result = await fetch("/session/current-sessions", { method: "POST", credentials: "include" });
         const data = await result.json();
         if (!data) {
           sess.textContent = "Waiting...";

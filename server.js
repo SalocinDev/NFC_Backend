@@ -18,10 +18,10 @@ const port = 3000;
 const indexHTML = path.join(__dirname, 'index.html');
 const viteReactDist = path.join(__dirname, 'dist');
 /* const viteReactHtml = path.join(__dirname, 'dist', 'index.html'); */
-const isProduction = process.env.NODE_ENV === 'production';
 
 const allowedOrigins = [
   "https://phalluis.github.io",
+  "https://salocindev.github.io",
   "https://seriously-trusting-octopus.ngrok-free.app",
   "http://172.26.1.2:3000",
   "http://172.26.1.2:5000",
@@ -62,7 +62,9 @@ app.use(bodyParser.json());
 const MemoryStore = session.MemoryStore;
 const store = new MemoryStore();
 
-app.set("trust proxy", 1); // important when behind ngrok / reverse proxy
+const isProduction = process.env.NODE_ENV === "production";
+
+app.set("trust proxy", 1); // required for secure cookies behind ngrok/proxies
 
 app.use(session({
   name: "anongginagawamodito",
@@ -72,9 +74,9 @@ app.use(session({
   store: store,
   cookie: {
     httpOnly: true,
-    secure: isProduction,                    // only secure in prod/https
-    sameSite: isProduction ? "none" : "lax", // none for cross-site https, lax for dev
-    maxAge: 1000 * 60 * 60             // 1 hour
+    secure: isProduction,                         // only true when prod (ngrok/github)
+    sameSite: isProduction ? "none" : "lax",      // none for cross-site, lax for localhost
+    maxAge: 1000 * 60 * 60                        // 1 hour
   }
 }));
 
@@ -96,19 +98,31 @@ app.use(express.static(viteReactDist)); // to serve vite-react built files
 
 // routing
 const nfcRoute = require('./Routes/NFC');
+console.log("NFC route loaded");
+
 const accRoute = require('./Routes/Acc');
+console.log("Acc route loaded");
+
 const sessionRoute = require('./Routes/Sessions')(store);
+console.log("Session route loaded");
+
 const libRoute = require('./Routes/Library');
+console.log("Library route loaded");
+
+const orvieRoute = require('./Routes/mysql-orvie');
+console.log("Mysql Orvie route loaded");
+
 /* const aiRoute = require('./Routes/AI') */
 
 app.use('/nfc', nfcRoute);
 app.use('/acc', accRoute);
 app.use('/session', sessionRoute);
 app.use('/lib', libRoute);
+app.use('/orv', orvieRoute);
 /* app.use('/ai', aiRoute); */
 
 // main page for debugging
-/* app.get('/view', (req, res) => {
+app.get('/view', (req, res) => {
   res.sendFile(indexHTML, err =>{
     if (err){
       console.log('Error serving file'+ err);
@@ -117,7 +131,8 @@ app.use('/lib', libRoute);
       console.log('File Served');
     }
   });
-}); */
+});
+
 app.get('/status', (req, res) => {
   const headers = req.headers;
   const origin = req.get('origin');

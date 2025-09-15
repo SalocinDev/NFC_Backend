@@ -1,7 +1,7 @@
 const express = require("express")
 const routes = express.Router();
 
-const { loginVerify, NFCloginVerify, signUp, checkAcc, verifyEmail } = require('../SQL/acc-utils');
+const { loginVerify, NFCloginVerify, signUp, checkAcc, verifyEmail, checkEmailVerification } = require('../SQL/acc-utils');
 const { getUserID, getUserInfoviaHash, getInfo, checkIfExisting } = require("../SQL/SQL-utils");
 const { sendOTPthroughMail } = require("../nodemailer/sendOTP")
 const { hashAll, genRandom, verifyOTP, OTPStore  } = require("../Crypto/crypto-utils");
@@ -19,6 +19,12 @@ routes.post('/login-verify', async (req, res) => {
           success: false,
           error: "Account not found"
         });
+      }
+
+      const isEmailVerified = await checkEmailVerification(email);
+
+      if (!isEmailVerified.success){
+        return res.status(400).json(isEmailVerified);
       }
 
       const result = await loginVerify({ email, password });
@@ -178,11 +184,11 @@ routes.post('/verify-otp', async (req, res) => {
 
     const normalizedEmail = email.toLowerCase();
     const data = OTPStore.get(normalizedEmail);
-
+    
     if (!data) {
-      return res.status(404).json({ verified: false, message: "No OTP found" });
+      return res.status(404).json({ verified: false, message: "No OTP found/OTP expired" });
     }
-
+    
     if (Date.now() > data.expiry) {
       OTPStore.delete(normalizedEmail);
       return res.status(400).json({ verified: false, message: "OTP expired" });

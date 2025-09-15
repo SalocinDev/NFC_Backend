@@ -97,6 +97,12 @@ async function checkAcc({ email, token }) {
   }
 }
 
+/* (async () => {
+  let email = "nicholaslonganilla@gmail.com";
+  const result = await checkAcc(email);
+  console.log(result);
+})(); */
+
 async function verifyEmail(email) {
   try {
     const [result] = await pool.query(
@@ -116,8 +122,30 @@ async function verifyEmail(email) {
 }
 
 /* (async () => {
-  let token = "c873ac70ea0417f564bc1d8b1d98689d8b5c65c3bd8dd1846e605c049e6d3351";
-  const result = await checkAcc({ token });
+  let email = "nicholaslonganilla@gmail.com";
+  const result = await verifyEmail(email);
+  console.log(result);
+})(); */
+
+async function checkEmailVerification(email) {
+  try {
+    const [rows] = await pool.query(
+      'SELECT user_id, user_email FROM library_user_table WHERE user_email = ? and user_email_verified = ?',
+      [email, "true"]
+    )
+    if (rows.length > 0) {
+      return { success: true, message: "Email is verified" }
+    } else {
+      return { success: false, message: "Email is not verified", email}
+    }
+  } catch (error) {
+    return { success: false, message: error}
+  }
+}
+
+/* (async () => {
+  let email = "nicholaslonganilla@gmail.com";
+  const result = await checkEmailVerification(email);
   console.log(result);
 })(); */
 
@@ -126,5 +154,6 @@ module.exports = {
   NFCloginVerify,
   signUp,
   checkAcc,
-  verifyEmail
+  verifyEmail,
+  checkEmailVerification
 };

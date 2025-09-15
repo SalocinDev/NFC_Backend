@@ -1,9 +1,9 @@
 const nodemailer = require("nodemailer");
 const { makeOTP, generateOTPandStoreOTP } = require("../Crypto/crypto-utils");
-const credentials = require("./credentials")
+require("dotenv").config();
 
-const email = credentials.email;
-const password = credentials.password;
+const email = process.env.EMAIL;
+const password = process.env.APP_PASSWORD;
 
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
@@ -43,7 +43,7 @@ async function sendOTPthroughMail(recipient) {
 }
 
 /* (async () => {
-  sendOTPthroughMail("nicholaslonganilla@gmail.com")
+  sendOTPthroughMail("mcl.manila.1@gmail.com")
     .then(result => {
       console.log("email sent", result);
     })
