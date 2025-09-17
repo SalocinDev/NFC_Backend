@@ -5,13 +5,20 @@ module.exports = (store) => {
 
   routes.post("/get-session", (req, res) => {
     if (req.session && req.session.login) {
+      const userInfo = req.session.login;
       res.status(200).json({
         loggedIn: true,
-        user: req.session.login.user_id,
+        data: req.session.login,
+        /* user: req.session.login.user_id,
         firstName: req.session.login.user_firstname,
         middleName: req.session.login.user_middlename,
         lastName: req.session.login.user_lastname,
-        sessionID: req.session.id,
+        dob: req.session.login.user_date_of_birth,
+        gender: req.session.login.user_gender,
+        contact: req.session.login.user_contact_number,
+        school: req.session.login.user_school,
+        nfcToken: req.session.login.nfc_token,
+        sessionID: req.session.id, */
       });
     } else {
       res.status(200).json({ loggedIn: false, message: "Not Logged in", err: "no req.session.login" });

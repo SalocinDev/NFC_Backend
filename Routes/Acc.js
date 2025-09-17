@@ -1,7 +1,7 @@
 const express = require("express")
 const routes = express.Router();
 
-const { loginVerify, NFCloginVerify, signUp, checkAcc, verifyEmail, checkEmailVerification } = require('../SQL/acc-utils');
+const { loginVerify, NFCloginVerify, signUp, checkAcc, verifyEmail, checkEmailVerification, checkEmail, changePassword, updateAccount } = require('../SQL/acc-utils');
 const { getUserID, getUserInfoviaHash, getInfo, checkIfExisting } = require("../SQL/SQL-utils");
 const { sendOTPthroughMail } = require("../nodemailer/sendOTP")
 const { hashAll, genRandom, verifyOTP, OTPStore  } = require("../Crypto/crypto-utils");
@@ -36,9 +36,9 @@ routes.post('/login-verify', async (req, res) => {
         });
       }
 
-      const { user_id, user_firstname, user_middlename, user_lastname } = result.data;
+      console.log(result.data)
 
-      req.session.login = { user_id, user_firstname, user_middlename, user_lastname };
+      req.session.login = result.data;
       
       return req.session.save(err => {
         if (err) {
@@ -48,7 +48,7 @@ routes.post('/login-verify', async (req, res) => {
         console.log("Session after email login:", req.session);
         res.status(200).json({
           success: true,
-          result: { user_id, user_firstname, user_middlename, user_lastname }
+          result: result.data
         });
       });
     }
@@ -208,6 +208,70 @@ routes.post('/verify-otp', async (req, res) => {
   } catch (err) {
     console.error("Error in /verify-otp:", err);
     res.status(500).json({ verified: false, message: "Server error" });
+  }
+});
+
+routes.post('/check-email', async (req, res) => {
+  try {
+    const {email} = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ success: false, message: "No Email" });
+    }
+
+    const result = await checkEmail(email);
+
+    if (!result.success && result.error) {
+      return res.status(500).json({ success: false, message: result.message });
+    };
+    
+    if (!result.success) {
+      return res.status(400).json({ success: false, message: result.message });
+    };
+
+    if (result.success) {
+      return res.status(200).json({ success: true, message: result.message });
+    };
+
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error });
+  };
+});
+
+routes.post('/change-password', async (req, res) => {
+  try {
+    const {email, password} = req.body;
+
+    if (!password) {
+      return res.status(400).json({ success: false, message: "No Password"});
+    }
+
+    const result = await changePassword(email, password);
+
+    if (!result.success && result.error) {
+      return res.status(500).json({ success: false, message: result.message });
+    };
+    
+    if (!result.success) {
+      return res.status(400).json({ success: false, message: result.message });
+    };
+
+    if (result.success) {
+      return res.status(200).json({ success: true, message: result.message });
+    };
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+routes.put("/update", async (req, res) => {
+  try {
+    const { email, updates, oldPassword, newPassword } = req.body;
+    const result = await updateAccount(email, updates, oldPassword, newPassword);
+    res.status(200).json(result);
+  } catch (err) {
+    console.error("Update route error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 });
 

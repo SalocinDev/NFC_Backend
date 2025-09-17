@@ -11,7 +11,7 @@ async function loginVerify({ email, password }) {
     console.log("hashedPasswordfromDB: "+compareHashes.hashedPasswordfromDB);
     if (compareHashes.success) {
       const [rows] = await pool.query(
-        'SELECT user_id, user_firstname, user_middlename, user_lastname FROM library_user_table WHERE user_email = ? AND user_password = ?',
+        'SELECT * FROM library_user_table WHERE user_email = ? AND user_password = ?',
         [email, calculatedHashedPassword]
       ); 
       if (rows.length > 0) {
@@ -32,7 +32,7 @@ async function loginVerify({ email, password }) {
 async function NFCloginVerify({ token }) {
   try {
     const [rows] = await pool.query(
-      'SELECT user_id, user_firstname, user_middlename, user_lastname FROM library_user_table WHERE nfc_token = ?',
+      'SELECT * FROM library_user_table WHERE nfc_token = ?',
       [token]
     );
 
@@ -136,7 +136,7 @@ async function checkEmailVerification(email) {
     if (rows.length > 0) {
       return { success: true, message: "Email is verified" }
     } else {
-      return { success: false, message: "Email is not verified", email}
+      return { success: false, message: "Email is not verified"}
     }
   } catch (error) {
     return { success: false, message: error}
@@ -149,11 +149,125 @@ async function checkEmailVerification(email) {
   console.log(result);
 })(); */
 
+async function checkEmail(email) {
+  try {
+    const [rows] = await pool.query(
+      'SELECT user_email FROM library_user_table WHERE user_email = ?',
+      [email]
+    );
+    if (rows.length > 0) {
+      return { success: true, message: "Account found"}
+    } else {
+      return { success: false, message: "Acc is not registered"}
+    }
+  } catch (error) {
+    return { success: false, message: error }
+  }
+}
+
+async function changePassword(email, password) {
+  try {
+    const salt = genRandom(1);
+    const newPassword = hashAll(password, salt);
+    const [result] = await pool.query(
+      'UPDATE library_user_table SET user_password = ?, user_password_salt = ? WHERE user_email = ?',
+      [newPassword, salt, email]
+    )
+    if (result.affectedRows > 0) {
+      return { success: true, message: "Password Changed" };
+    } else {
+      return { success: false, message: "No user found with that email" };
+    }
+  } catch (error) {
+    return { success: false, message: error.message+"DWWDS" || JSON.stringify(error) }
+  }
+}
+
+async function updateAccount(updates = {}) {
+  try {
+    const { email } = updates;
+    let fields = [];
+    let values = [];
+
+    if (updates.firstName !== undefined) {
+      fields.push("user_firstname = ?");
+      values.push(updates.firstName);
+    }
+    if (updates.middleName !== undefined) {
+      fields.push("user_middlename = ?");
+      values.push(updates.middleName);
+    }
+    if (updates.lastName !== undefined) {
+      fields.push("user_lastname = ?");
+      values.push(updates.lastName);
+    }
+    if (updates.dob !== undefined && updates.dob !== "") {
+      fields.push("user_date_of_birth = ?");
+      values.push(updates.dob);
+    }
+    if (updates.gender !== undefined) {
+      fields.push("user_gender = ?");
+      values.push(updates.gender);
+    }
+    if (updates.contact !== undefined) {
+      fields.push("user_contact_number = ?");
+      values.push(updates.contact);
+    }
+    if (updates.school !== undefined) {
+      fields.push("user_school = ?");
+      values.push(updates.school);
+    }
+    if (updates.newEmail !== undefined) {
+      fields.push("user_email = ?");
+      values.push(updates.newEmail);
+    }
+
+    if (updates.oldPassword && updates.newPassword) {
+      const { salt } = await getSalt(email);
+      const compareHashes = await getHashedPasswordviaSalt(updates.oldPassword, salt);
+
+      if (!compareHashes.success) {
+        return { success: false, message: "Old password is incorrect" };
+      }
+
+      const newSalt = genRandom(1);
+      const hashedPassword = hashAll(updates.newPassword, newSalt);
+
+      fields.push("user_password = ?", "user_password_salt = ?");
+      values.push(hashedPassword, newSalt);
+    }
+
+    if (fields.length === 0) {
+      return { success: false, message: "No fields to update" };
+    }
+
+    values.push(email);
+
+    const query = `UPDATE library_user_table SET ${fields.join(", ")} WHERE user_email = ?`;
+    const [result] = await pool.query(query, values);
+
+    if (result.affectedRows > 0) {
+      return { success: true, message: "Account updated successfully" };
+    } else {
+      return { success: false, message: "No user found with that email" };
+    }
+  } catch (error) {
+    console.error("Error updating account:", error);
+    return { success: false, message: error.message || "Database error" };
+  }
+}
+
+
+
+
 module.exports = { 
   loginVerify,
   NFCloginVerify,
   signUp,
   checkAcc,
   verifyEmail,
-  checkEmailVerification
+  checkEmailVerification,
+  checkEmail,
+  changePassword,
+  updateAccount
 };

@@ -63,6 +63,7 @@ const MemoryStore = session.MemoryStore;
 const store = new MemoryStore();
 
 const isProduction = process.env.NODE_ENV === "production";
+const environment = process.env.NODE_ENV;
 
 app.set("trust proxy", 1); // required for secure cookies behind ngrok/proxies
 
@@ -146,5 +147,6 @@ app.get('/status', (req, res) => {
 });
 
 app.listen(port, "0.0.0.0", () => {
-  console.log(`NFC server running at ${port}`);
+  console.log(`Server Mode: ${environment}`);
+  console.log(`Server running at ${port}`);
 });
