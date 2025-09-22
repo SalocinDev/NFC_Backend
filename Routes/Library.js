@@ -1,5 +1,5 @@
 const express = require('express');
-const { getBooks } = require('../SQL/SQL-utils');
+const { getBooks, getServicesPK, logServices } = require('../SQL/SQL-utils');
 const { writetoDB } = require('../SQL/sqlNFClogic');
 const routes = express.Router();
 
@@ -36,5 +36,24 @@ routes.post('/services', async (req, res) => {
     
   }
 });
+
+routes.post('/user-services', async (req, res ) => {
+  try {
+    const { services } = req.body;
+    const strServices = JSON.stringify(services);
+    const servicesArray = strServices.split(",").map(s => s.trim());
+    // console.log(servicesArray);
+    const servicePK = await getServicesPK(servicesArray);
+    console.log("Services Availed :"+servicePK);
+    
+    const result = await logServices(servicePK, req.session.login.user_id)
+    if (!result.success) {
+      return res.status(400).json({ success: false, message: "Something went wrong" })
+    }
+    res.status(200).json({ success: true })
+  } catch (error) {
+    res.status(500).json({ success: false })
+  }
+})
 
 module.exports = routes;

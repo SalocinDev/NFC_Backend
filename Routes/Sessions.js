@@ -5,7 +5,6 @@ module.exports = (store) => {
 
   routes.post("/get-session", (req, res) => {
     if (req.session && req.session.login) {
-      const userInfo = req.session.login;
       res.status(200).json({
         loggedIn: true,
         data: req.session.login,

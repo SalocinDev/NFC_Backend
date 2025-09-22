@@ -1,7 +1,7 @@
 const express = require("express")
 const routes = express.Router();
 
-const { loginVerify, NFCloginVerify, signUp, checkAcc, verifyEmail, checkEmailVerification, checkEmail, changePassword, updateAccount } = require('../SQL/acc-utils');
+const { loginVerify, NFCloginVerify, signUp, checkAcc, verifyEmail, checkEmailVerification, checkEmail, changePassword, updateAccount, staffCheck } = require('../SQL/acc-utils');
 const { getUserID, getUserInfoviaHash, getInfo, checkIfExisting } = require("../SQL/SQL-utils");
 const { sendOTPthroughMail } = require("../nodemailer/sendOTP")
 const { hashAll, genRandom, verifyOTP, OTPStore  } = require("../Crypto/crypto-utils");
@@ -12,8 +12,28 @@ routes.post('/login-verify', async (req, res) => {
 
     // ===== CASE 1: Email/Password Login =====
     if (email && password) {
-      const accountExisting = await checkAcc({ email });
 
+      const checkIfStaff = await staffCheck(email, password);
+      if (checkIfStaff.success) {
+/*         console.log(checkIfStaff.data); */
+        console.log(`Staff: ${checkIfExisting.data.staff_firstname} has Logged In`)
+        req.session.login = {role: "staff", ...checkIfStaff.data};
+
+        return req.session.save(err => {
+        if (err) {
+          console.error("Session save error:", err);
+          return res.status(500).json({ success: false, error: "Failed to save session" });
+        }
+ /*        console.log("Session after email login:", req.session); */
+        res.status(200).json({
+          success: true,
+          role: "staff",
+          ...checkIfStaff.data
+        });
+      });
+      }
+
+      const accountExisting = await checkAcc({ email });
       if (!accountExisting.exists) {
         return res.status(409).json({
           success: false,
@@ -36,19 +56,21 @@ routes.post('/login-verify', async (req, res) => {
         });
       }
 
-      console.log(result.data)
+/*       console.log(result.data) */
 
-      req.session.login = result.data;
+      req.session.login = {role: "user", ...result.data};
       
       return req.session.save(err => {
         if (err) {
           console.error("Session save error:", err);
           return res.status(500).json({ success: false, error: "Failed to save session" });
         }
-        console.log("Session after email login:", req.session);
+/*         console.log("Session after email login:", req.session); */
+        console.log(`User: ${result.data.user_firstname} has Logged In`)
         res.status(200).json({
           success: true,
-          result: result.data
+          role: "user",
+          ...result.data
         });
       });
     }
@@ -73,19 +95,18 @@ routes.post('/login-verify', async (req, res) => {
         });
       }
 
-      const { user_id, user_firstname, user_middlename, user_lastname } = result.data;
-
-      req.session.login = { user_id, user_firstname, user_middlename, user_lastname };
+      req.session.login = {role: "user", ...result.data};
 
       return req.session.save(err => {
         if (err) {
           console.error("Session save error:", err);
           return res.status(500).json({ success: false, error: "Failed to save session" });
         }
-        console.log("Session after NFC login:", req.session);
+/*         console.log("Session after NFC login:", req.session); */
+        console.log(`User: ${result.data.user_firstname} has Logged In`)
         res.status(200).json({
           success: true,
-          result: { user_id, user_firstname, user_middlename, user_lastname }
+          ...result.data
         });
       });
     }
@@ -97,7 +118,7 @@ routes.post('/login-verify', async (req, res) => {
     });
 
   } catch (err) {
-    console.error("Error in /login-verify:", err);
+/*     console.error("Error in /login-verify:", err); */
     res.status(500).json({
       success: false,
       error: "Internal server error",

@@ -4,7 +4,9 @@
   "main": "server.js",
   "scripts": {
     "devStart": "nodemon server.js",
-    "start": "node server.js",
+    "devStop": "pm2 stop ecosystem.config.js",
+    "devRestart": "pm2 restart ecosystem.config.js",
+    "devStatus": "pm2 status",
     "ngrok": "ngrok http --url=seriously-trusting-octopus.ngrok-free.app --host-header=localhost:3000 3000"
   },
   "keywords": [],
@@ -16,10 +18,13 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
-    "express-session": "^1.18.2", 
+    "express-session": "^1.18.2",
+    "multer": "^2.0.2",
     "mysql2": "^3.14.2",
     "nfc-pcsc": "^0.8.1",
     "nodemailer": "^7.0.5",
+    "pm2": "^6.0.11",
+    "sharp": "^0.34.4",
     "uuid": "^9.0.1"
   },
   "devDependencies": {

@@ -2,13 +2,29 @@ const pool = require('./conn');
 const { hashAll, genRandom } = require('../Crypto/crypto-utils');
 const { getSalt, getHashedPasswordviaSalt } = require('./SQL-utils');
 
+async function staffCheck(email, password) {
+  try {
+    const [rows] = await pool.query(
+      'SELECT * FROM library_staff_table WHERE staff_email = ? AND staff_password = ?',
+      [email, password]
+    );
+    if (rows.length > 0) {
+        return { success: true, data: rows[0] };
+      } else {
+        return { success: false, message: "Not Admin" };
+      }
+  } catch (error) {
+    return { success: false, err: error.message || error };
+    }
+  }
+
 async function loginVerify({ email, password }) {
   try {
     const { salt } = await getSalt(email);
     const compareHashes = await getHashedPasswordviaSalt(password, salt)
     const { calculatedHashedPassword } = compareHashes;
-    console.log("calculatedHashedPassword: "+compareHashes.calculatedHashedPassword);
-    console.log("hashedPasswordfromDB: "+compareHashes.hashedPasswordfromDB);
+/*     console.log("calculatedHashedPassword: "+compareHashes.calculatedHashedPassword);
+    console.log("hashedPasswordfromDB: "+compareHashes.hashedPasswordfromDB); */
     if (compareHashes.success) {
       const [rows] = await pool.query(
         'SELECT * FROM library_user_table WHERE user_email = ? AND user_password = ?',
@@ -53,7 +69,7 @@ async function signUp(email, password, firstName, middleName, lastName, dob, gen
       const nfc_token = genRandom(2);
       const salt = genRandom(1);
       const hashedPassword = hashAll(password, salt);
-      console.log("hashedPassword to the Database: "+ hashedPassword);
+/*       console.log("hashedPassword to the Database: "+ hashedPassword); */
       
       const [result] = await pool.query(
         'INSERT INTO `library_user_table`(`user_email`, `user_password`, `user_password_salt`, `user_firstname`, `user_middlename`, `user_lastname`, `user_date_of_birth`, `user_gender`, `user_contact_number`, `user_school`, `nfc_token`) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
@@ -87,7 +103,7 @@ async function checkAcc({ email, token }) {
     const [rows] = await pool.query(query, [value]);
 
     if (rows.length > 0) {
-      console.log(rows[0]);
+/*       console.log(rows[0]); */
       return { success: true, exists: true, message: "Account already registered" };
     } else {
       return { success: true, exists: false, message: "Account not registered" };
@@ -257,10 +273,72 @@ async function updateAccount(updates = {}) {
   }
 }
 
+async function updateProfilePicture(profilePictureName, profilePictureData, user_id) {
+  try {
+    const [result] = await pool.query(
+      `INSERT INTO user_pfp_table (user_pfp_name, user_pfp_data, user_id_fk)
+       VALUES (?, ?, ?)
+       ON DUPLICATE KEY UPDATE 
+         user_pfp_name = VALUES(user_pfp_name),
+         user_pfp_data = VALUES(user_pfp_data)`,
+      [profilePictureName, profilePictureData, user_id]
+    );
+    if (result.affectedRows > 0) {
+        await updateProfilePictureForeignKey(user_id)
+        return { success: true, result: result.affectedRows > 0 };
+      } else {
+        return { success: false, message: "Updating Profile Picture" };
+      }
+  } catch (error) {
+    console.error("Error updating profile picture:", error);
+    return { success: false, error };
+  }
+}
 
+async function updateProfilePictureForeignKey(user_id) {
+  try {
+    const [rows] = await pool.query(
+      `SELECT user_pfp_id FROM user_pfp_table WHERE user_id_fk = ? ORDER BY user_pfp_id DESC LIMIT 1`,
+      [user_id]
+    );
+    if (rows.length > 0) {
+      const user_pfp_id = rows[0].user_pfp_id;
+      const [update] = await pool.query(
+        `UPDATE library_user_table SET user_pfp_id_fk = ? WHERE user_id = ?`,
+        [user_pfp_id, user_id]
+      );
+      return { success: update.affectedRows > 0 };
+    } else {
+      console.error("No profile picture found for user:", user_id);
+      return { success: false, message: "No profile picture found" };
+    }
+  } catch (error) {
+    console.error("Error updating foreign key:", error);
+    return { success: false, error };
+  }
+}
 
+async function getProfilePicture(user_pfp_id) {
+  try {
+    const [rows] = await pool.query(
+      `SELECT user_pfp_data FROM user_pfp_table WHERE user_pfp_id = ?`,
+      [user_pfp_id]
+    );
+
+    if (rows.length > 0) {
+      const buffer = rows[0].user_pfp_data;
+      return { success: true, buffer };
+    } else {
+      return { success: false, message: "No profile picture found" };
+    }
+  } catch (error) {
+    console.error("Error getting Profile picture:", error);
+    return { success: false, error };
+  }
+}
 
 module.exports = { 
+  staffCheck,
   loginVerify,
   NFCloginVerify,
   signUp,
@@ -269,5 +347,7 @@ module.exports = {
   checkEmailVerification,
   checkEmail,
   changePassword,
-  updateAccount
+  updateAccount,
+  updateProfilePicture,
+  getProfilePicture
 };

@@ -13,7 +13,6 @@ const cors = require('cors'); // cors
 const app = express(); // instantiate express
 const port = 3000;
 
-
 // prepare path
 const indexHTML = path.join(__dirname, 'index.html');
 const viteReactDist = path.join(__dirname, 'dist');
@@ -25,6 +24,7 @@ const allowedOrigins = [
   "https://seriously-trusting-octopus.ngrok-free.app",
   "http://172.26.1.2:3000",
   "http://172.26.1.2:5000",
+  "http://172.26.1.2:5001",
   "https://124.6.136.178"
 ];
 
@@ -40,7 +40,6 @@ app.use(cors({
   allowedHeaders: ['Content-Type','Authorization']
 }));
 
-// Body parser
 app.use(bodyParser.json());
 
 // Session (after CORS)
@@ -81,21 +80,32 @@ app.use(session({
   }
 }));
 
-/* app.use(session({
-  name: 'anongginagawamodito',
-  secret: process.env.SESSION_SECRET,
-  saveUninitialized: false,
-  resave: false,
-  store: store,
-  cookie: {
-    maxAge: 1000 * 60 * 60,
-    httpOnly: true,
-    secure: isProduction,          // true if production
-    sameSite: isProduction ? "none" : "lax"
-  }
-})); */
+const apiUrl = isProduction
+  ? "https://seriously-trusting-octopus.ngrok-free.app"
+  : "http://172.26.1.2:5000";
 
-app.use(express.static(viteReactDist)); // to serve vite-react built files
+// CSP middleware
+app.use((req, res, next) => {
+  if (isProduction) {
+    res.setHeader(
+      "Content-Security-Policy",
+      `default-src 'self'; img-src 'self' ${apiUrl} data:`
+    );
+  } else {
+    res.setHeader(
+      "Content-Security-Policy",
+      "default-src 'self'; img-src * data:;"
+    );
+  }
+
+  res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+  res.setHeader("Cross-Origin-Embedder-Policy", "unsafe-none");
+
+  next();
+});
+
+
+/* app.use(express.static(viteReactDist)); // to serve vite-react built files */
 
 // routing
 const nfcRoute = require('./Routes/NFC');
@@ -110,17 +120,30 @@ console.log("Session route loaded");
 const libRoute = require('./Routes/Library');
 console.log("Library route loaded");
 
-const orvieRoute = require('./Routes/mysql-orvie');
-console.log("Mysql Orvie route loaded");
+const fileRoute= require('./Routes/File');
+console.log("File route loaded");
 
-/* const aiRoute = require('./Routes/AI') */
+const booksRoute = require('./Routes/Books');
+console.log("Books route loaded");
+
+const categoriesRoute = require('./Routes/Categories');
+console.log("Categories route loaded");
+
+const aiRoute = require('./Routes/AI')
+console.log("AI route loaded")
 
 app.use('/nfc', nfcRoute);
 app.use('/acc', accRoute);
 app.use('/session', sessionRoute);
 app.use('/lib', libRoute);
-app.use('/orv', orvieRoute);
-/* app.use('/ai', aiRoute); */
+app.use('/file', fileRoute); 
+app.use('/books', booksRoute);
+app.use('/categories', categoriesRoute);
+app.use('/ai', aiRoute);
+
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+/* app.use(express.static(viteReactDist)); */
 
 // main page for debugging
 app.get('/view', (req, res) => {
