@@ -17,7 +17,7 @@ function writeNFC(payload) {
     // eventemitter, this one runs if a reader is detected
     nfc.once('reader', reader => {
       // callback hell
-      // when card is placed on reader this event is emitted, a listener
+      // when card is placed on reader this event is emitted. a listener
       const onCard = async (card) => {
         // remove prior listeners, if any, to avoid memory leaks
         reader.removeListener('card', onCard);

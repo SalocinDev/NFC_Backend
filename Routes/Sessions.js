@@ -43,5 +43,29 @@ module.exports = (store) => {
     res.status(200).json(req.session);
   });
 
+  routes.get("/borrowed", async (req, res) => {
+  if (!req.session || !req.session.login) {
+    return res.status(401).json({ error: "Not logged in" });
+  }
+
+  const userId = req.session.login.user_id;
+
+  try {
+    const [rows] = await pool.query(
+      `SELECT bb.borrow_id, bb.book_borrowed_date, bb.borrowed_due_date,
+              b.book_title, b.book_author, b.book_publisher
+       FROM book_borrow_table bb
+       JOIN book_table b ON bb.book_id_fk = b.book_id
+       WHERE bb.user_id_fk = ?`,
+      [userId]
+    );
+
+    res.json(rows);
+  } catch (err) {
+    console.error("Error fetching borrows:", err);
+    res.status(500).json({ error: "Failed to fetch borrowed books" });
+  }
+});
+
   return routes;
 };

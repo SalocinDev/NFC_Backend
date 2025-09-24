@@ -16,7 +16,7 @@ routes.post('/login-verify', async (req, res) => {
       const checkIfStaff = await staffCheck(email, password);
       if (checkIfStaff.success) {
 /*         console.log(checkIfStaff.data); */
-        console.log(`Staff: ${checkIfExisting.data.staff_firstname} has Logged In`)
+        console.log(`Staff: ${checkIfStaff.data.staff_firstname} has Logged In`)
         req.session.login = {role: "staff", ...checkIfStaff.data};
 
         return req.session.save(err => {
@@ -262,21 +262,16 @@ routes.post('/check-email', async (req, res) => {
 routes.post('/change-password', async (req, res) => {
   try {
     const {email, password} = req.body;
-
     if (!password) {
       return res.status(400).json({ success: false, message: "No Password"});
     }
-
     const result = await changePassword(email, password);
-
     if (!result.success && result.error) {
       return res.status(500).json({ success: false, message: result.message });
     };
-    
     if (!result.success) {
       return res.status(400).json({ success: false, message: result.message });
     };
-
     if (result.success) {
       return res.status(200).json({ success: true, message: result.message });
     };

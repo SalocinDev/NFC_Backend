@@ -19,13 +19,15 @@
   <p><strong>Password:</strong> <span id="pass">Waiting for Card...</span></p>
   <p><strong>NFC Token:</strong> <span id="tokn">Waiting for Card...</span></p>
   <p><strong>Session:</strong> <span id="sess">...</span></p>
-  <button onclick=getSessions()>Get Sessions</button>
-  <button onclick=fetchCardData()>Refresh</button>
-  <button onclick=getReaderStatus()>Get Reader Status</button>
+
+  <button id="sessions-btn">Get Sessions</button>
+  <button id="refresh-btn">Refresh</button>
+  <button id="reader-btn">Get Reader Status</button>
+
   <p><strong>Write Into Card:</strong></p>
   <textarea id="write" rows="5" cols="40" placeholder='{ "role": "", "name": "", "password": "" }'></textarea>
   <br>
-  <button id="write-btn" onclick="writeToCard()">Write</button>
+  <button id="write-btn">Write</button>
   <p id="write-status"></p>
 
   <script>
@@ -40,23 +42,23 @@
 
     async function getReaderStatus() {
       try {
-        const res = await fetch('/nfc/check-reader', {method: "POST",});
+        const res = await fetch('/nfc/check-reader', { method: "POST" });
         const data = await res.json();
 
-        if(data.connected === true){
+        if (data.connected === true) {
           document.getElementById('reader').textContent = 'Connected';
-        } else if (data.connected === false){
+        } else if (data.connected === false) {
           document.getElementById('reader').textContent = 'Disconnected';
         } else if (!res) {
           document.getElementById('reader').textContent = 'Error';
         }
-      } catch (err){
+      } catch (err) {
         document.getElementById('reader').textContent = 'Error';
       }
     }
 
     async function fetchCardData() {
-      const btn = document.querySelector('button');
+      const btn = document.getElementById('refresh-btn');
       btn.disabled = true;
       btn.textContent = 'Reading...';
 
@@ -69,14 +71,14 @@
       tokn.textContent = 'Waiting for Card...';
       
       try {
-        const res = await fetch('/nfc/read', {method: "POST"});
+        const res = await fetch('/nfc/read', { method: "POST" });
         const data = await res.json();
 
         document.getElementById('card').textContent = 'Reading...';
 
         if (data && data.valid) {
           userID.textContent = data.userID ?? 'N/A';
-          hash.textContent = data.hash ?? 'No hash'; // ✅ fix here
+          hash.textContent = data.hash ?? 'No hash';
           card.textContent = 'Read';
           name.textContent = data.firstName ?? 'N/A';
           role.textContent = data.middleName ?? 'N/A';
@@ -100,7 +102,7 @@
           pass.textContent = 'Waiting for Card...';
         }
       } catch (err) {
-        console.error("Card read error:", err); // 👈 log actual error
+        console.error("Card read error:", err);
         userID.textContent = 'Error reading card';
         hash.textContent = `Couldn't fetch`;
         card.textContent = 'Error reading card';
@@ -161,7 +163,7 @@
       } finally {
         btn.textContent = 'Write';
       }
-    };
+    }
 
     async function getSessions() {
       try {
@@ -171,14 +173,21 @@
           sess.textContent = "Waiting...";
         } else {
           sess.textContent = data.activeUsers
-          .map(u => `(${u.user_id}) ${u.user_firstname} ${u.user_middlename} ${u.user_lastname}`)
-          .join(", ");
-        };
+            .map(u => `(${u.user_id}) ${u.user_firstname} ${u.user_middlename} ${u.user_lastname}`)
+            .join(", ");
+        }
       } catch (err) {
-        sess.textContent = "..."
+        sess.textContent = "...";
       }
-    };
-    
+    }
+
+    // ✅ Attach event listeners after DOM is ready
+    document.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("sessions-btn").addEventListener("click", getSessions);
+      document.getElementById("refresh-btn").addEventListener("click", fetchCardData);
+      document.getElementById("reader-btn").addEventListener("click", getReaderStatus);
+      document.getElementById("write-btn").addEventListener("click", writeToCard);
+    });
   </script>
 </body>
 </html>

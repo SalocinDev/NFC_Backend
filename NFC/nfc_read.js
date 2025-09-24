@@ -57,20 +57,20 @@ function readNFC() {
           if (getToken.tokenReal){
             const tokenExists = getToken.tokenReal;
             const token = getToken.data.nfc_token;
-            const userID = getToken.data.user_id;
+/*             const userID = getToken.data.user_id;
             const fName = getToken.data.user_firstname;
             const mName = getToken.data.user_middlename;
-            const lName = getToken.data.user_lastname;
+            const lName = getToken.data.user_lastname; */
             reader.close();
             
             // return if hash exists in db
             return resolve({
               valid: tokenExists,
               token: token,
-              userID: userID,
+/*               userID: userID,
               firstName: fName,
               middleName: mName,
-              lastName: lName
+              lastName: lName */
             });
 
           } else {

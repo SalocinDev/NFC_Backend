@@ -7,11 +7,12 @@ async function getTokenfromDB(hash) {
             [hash]
     );
         if (rows.length > 0) {
-            console.log(rows[0]);
+            // console.log(rows[0]);
+            console.log("Token Real");
             
-            return { tokenReal: true, data: rows[0] };
+            return { success: true, tokenReal: true, data: rows[0] };
     }     else {
-            return { tokenReal: false };
+            return { success: false, tokenReal: false };
     }
   
     } catch (err) {

@@ -28,7 +28,6 @@ routes.post('/read', async (req, res) => {
   if (!checkReader()) {
     return res.status(503).json({ success: false, message: "No NFC reader attached" });
   }
-
   try {
     const data = await readNFC();
     res.status(200).json(data);

@@ -156,6 +156,41 @@ async function searchBooks(conn, intent, limit = 10) {
 }
 
 /* =========================
+   Related Search (Fallback)
+   ========================= */
+async function relatedSearch(conn, intent, limit = 5) {
+  const { terms } = intent;
+
+  // If no terms, fallback to top viewed
+  if (!terms.length) {
+    const [rows] = await conn.query(`
+      SELECT book_id, book_title, book_author, book_description, book_publisher, 
+             book_year_publish, book_view_count
+      FROM book_table
+      ORDER BY book_view_count DESC
+      LIMIT ?
+    `, [limit]);
+    return rows;
+  }
+
+  // Try with just the first keyword for a broader match
+  const keyword = `%${terms[0]}%`;
+  const [rows] = await conn.query(`
+    SELECT book_id, book_title, book_author, book_description, book_publisher, 
+           book_year_publish, book_view_count
+    FROM book_table
+    WHERE LOWER(book_title) LIKE ? 
+       OR LOWER(book_description) LIKE ?
+       OR LOWER(book_author) LIKE ?
+       OR LOWER(book_publisher) LIKE ?
+    ORDER BY book_view_count DESC
+    LIMIT ?
+  `, [keyword, keyword, keyword, keyword, limit]);
+
+  return rows;
+}
+
+/* =========================
    Reply builders (EN + FIL)
    ========================= */
 function formatReply(message, books, lang = 'en') {
@@ -197,7 +232,12 @@ router.post('/chat', async (req, res) => {
     conn = await pool.getConnection();
 
     const intent = parseIntent(message);
-    const books = await searchBooks(conn, intent, 10);
+    let books = await searchBooks(conn, intent, 10);
+
+    // 🔹 If no exact matches, try related search
+    if (books.length === 0) {
+      books = await relatedSearch(conn, intent, 5);
+    }
 
     conn.release();
 
@@ -213,4 +253,4 @@ router.post('/chat', async (req, res) => {
   }
 });
 
-module.exports = router; 
+module.exports = router;

@@ -11,7 +11,6 @@ const sharp = require("sharp");
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-
 router.post('/profile-picture-update', upload.single('file'), async (req, res) => {
   try {
     const userID = req.session?.login?.user_id;
@@ -20,8 +19,11 @@ router.post('/profile-picture-update', upload.single('file'), async (req, res) =
     }
 
     const compressedBuffer = await sharp(req.file.buffer)
-      .resize(100, 100, { fit: "cover" })
-      .jpeg({ quality: 100 })
+      .resize(100, 100, {
+        fit: "cover",
+        background: { r: 0, g: 0, b: 0, alpha: 0 }
+      })
+      .png({ quality: 100 })
       .toBuffer();
 
     /* const profilePictureName = req.file.originalname.replace(/\.[^/.]+$/, ".jpg"); */

@@ -3,10 +3,10 @@ const pool = require("../SQL/conn.js")
 
 const routes = express.Router();
 
-// 📌 GET all books with category
+//GET all books with category
 routes.get("/", async (req, res) => {
   try {
-    const limit = parseInt(req.query.limit) || 5;
+    const limit = parseInt(req.query.limit) || 500;
     const search = req.query.search ? `%${req.query.search}%` : "%";
 
     const [rows] = await pool.query(`
@@ -25,7 +25,24 @@ routes.get("/", async (req, res) => {
   }
 });
 
-// 📌 CREATE new book
+routes.get("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [rows] = await pool.query(
+      `SELECT * FROM book_table WHERE book_id = ?`,
+      [id]
+    );
+    if (rows.length > 0) {
+      res.status(200).json({rows});
+    } else {
+      res.status(400).json({message: "Book Not Found"})
+    }
+  } catch (error) {
+    res.status(400).json({error: error.message || error})
+  }
+})
+
+//CREATE new book
 routes.post("/", async (req, res) => {
   try {
     const {
@@ -54,7 +71,7 @@ routes.post("/", async (req, res) => {
         book_inventory,
       ]
     );
-
+    console.log(`Book ${book_title} Added`);
     res.json({ book_id: result.insertId, ...req.body });
   } catch (err) {
     console.error(err);
@@ -62,7 +79,7 @@ routes.post("/", async (req, res) => {
   }
 });
 
-// 📌 UPDATE book
+//UPDATE book
 routes.put("/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -101,7 +118,7 @@ routes.put("/:id", async (req, res) => {
   }
 });
 
-// 📌 DELETE book
+//DELETE book
 routes.delete("/:id", async (req, res) => {
   try {
     const { id } = req.params;

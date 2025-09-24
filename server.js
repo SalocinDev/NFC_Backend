@@ -31,10 +31,10 @@ const allowedOrigins = [
 // Dynamic CORS middleware
 app.use(cors({
   origin: function(origin, callback) {
-    if (!origin) return callback(null, true); // curl / Postman
-    if (allowedOrigins.includes(origin)) callback(null, true);
-    else callback(new Error("Not allowed by CORS"));
-  },
+  if (!origin) return callback(null, true); // curl / Postman
+  if (allowedOrigins.includes(origin)) callback(null, true);
+  else callback(new Error("Not allowed by CORS"));
+},
   credentials: true,
   methods: ['GET','POST','PUT','DELETE','OPTIONS'],
   allowedHeaders: ['Content-Type','Authorization']
@@ -44,20 +44,20 @@ app.use(bodyParser.json());
 
 // Session (after CORS)
 /* app.use(session({
-  name: 'anongginagawamodito',
-  secret: process.env.SESSION_SECRET || 'shhhhhhhhhhhh',
-  saveUninitialized: false,
-  resave: true,
-  store: store,
-  cookie: {
-    maxAge: 1000 * 60 * 60, // 1 hour
-    httpOnly: true,
-    secure: true,
-    sameSite: 'none'
-    }
-    })); */
-    
-  // sessions storage. only exists in memory
+name: 'anongginagawamodito',
+secret: process.env.SESSION_SECRET || 'shhhhhhhhhhhh',
+saveUninitialized: false,
+resave: true,
+store: store,
+cookie: {
+maxAge: 1000 * 60 * 60, // 1 hour
+httpOnly: true,
+secure: true,
+sameSite: 'none'
+}
+})); */
+
+// sessions storage. only exists in memory
 const MemoryStore = session.MemoryStore;
 const store = new MemoryStore();
 
@@ -73,10 +73,10 @@ app.use(session({
   saveUninitialized: false,
   store: store,
   cookie: {
-    httpOnly: true,
-    secure: isProduction,                         // only true when prod (ngrok/github)
-    sameSite: isProduction ? "none" : "lax",      // none for cross-site, lax for localhost
-    maxAge: 1000 * 60 * 60                        // 1 hour
+  httpOnly: true,
+  secure: isProduction,                         // only true when prod (ngrok/github)
+  sameSite: isProduction ? "none" : "lax",      // none for cross-site, lax for localhost
+  maxAge: 1000 * 60 * 60                        // 1 hour
   }
 }));
 
@@ -89,12 +89,20 @@ app.use((req, res, next) => {
   if (isProduction) {
     res.setHeader(
       "Content-Security-Policy",
-      `default-src 'self'; img-src 'self' ${apiUrl} data:`
+      [
+        `default-src 'self' ${apiUrl} https://salocindev.github.io https://phalluis.github.io`,
+        `script-src 'self' ${apiUrl} https://salocindev.github.io https://phalluis.github.io 'nonce-abc123'`,
+        `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
+        `font-src 'self' https://fonts.gstatic.com`,
+        `img-src 'self' ${apiUrl} data:`,
+        `connect-src 'self' ${apiUrl}`,
+        `object-src 'none'`
+      ].join("; ")
     );
   } else {
     res.setHeader(
       "Content-Security-Policy",
-      "default-src 'self'; img-src * data:;"
+      "default-src 'self' * data: blob:;"
     );
   }
 
@@ -104,33 +112,44 @@ app.use((req, res, next) => {
   next();
 });
 
-
 /* app.use(express.static(viteReactDist)); // to serve vite-react built files */
 
 // routing
 const nfcRoute = require('./Routes/NFC');
-console.log("NFC route loaded");
+console.log("NFC route loaded: /nfc");
 
 const accRoute = require('./Routes/Acc');
-console.log("Acc route loaded");
+console.log("Acc route loaded: /acc");
 
 const sessionRoute = require('./Routes/Sessions')(store);
-console.log("Session route loaded");
+console.log("Session route loaded: session");
 
 const libRoute = require('./Routes/Library');
-console.log("Library route loaded");
+console.log("Library route loaded: /lib");
 
 const fileRoute= require('./Routes/File');
-console.log("File route loaded");
+console.log("File route loaded: /file");
 
 const booksRoute = require('./Routes/Books');
-console.log("Books route loaded");
+console.log("Books route loaded: /books");
 
 const categoriesRoute = require('./Routes/Categories');
-console.log("Categories route loaded");
+console.log("Categories route loaded: /categories");
+
+const borrowingRoute = require('./Routes/Borrowing');
+console.log("Borrowing route loaded: /borrowing");
+
+const returningRoute = require('./Routes/Returning');
+console.log("Returning route loaded: /returning");
+
+const servicelogsRoute = require('./Routes/ServiceLogs');
+console.log("ServiceLogs route loaded: /servicelogs");
+
+const userRoute = require('./Routes/User');
+console.log("User route loaded: /user");
 
 const aiRoute = require('./Routes/AI')
-console.log("AI route loaded")
+console.log("AI route loaded: /ai")
 
 app.use('/nfc', nfcRoute);
 app.use('/acc', accRoute);
@@ -139,21 +158,26 @@ app.use('/lib', libRoute);
 app.use('/file', fileRoute); 
 app.use('/books', booksRoute);
 app.use('/categories', categoriesRoute);
+app.use('/borrowing', borrowingRoute);
+app.use('/returning', returningRoute);
+app.use('/servicelogs', servicelogsRoute);
+app.use('/user', userRoute);
 app.use('/ai', aiRoute);
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 /* app.use(express.static(viteReactDist)); */
+// test test
 
 // main page for debugging
 app.get('/view', (req, res) => {
   res.sendFile(indexHTML, err =>{
-    if (err){
-      console.log('Error serving file'+ err);
-      res.status(err.status || 500).send('Error serving file');
-    } else {
-      console.log('File Served');
-    }
+  if (err){
+    console.log('Error serving file'+ err);
+    res.status(err.status || 500).send('Error serving file');
+  } else {
+    console.log('File Served');
+  }
   });
 });
 
