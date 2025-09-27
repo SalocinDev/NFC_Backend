@@ -1,5 +1,6 @@
 const express = require("express")
 const pool = require("../SQL/conn.js")
+const { getBooks, getServicesPK, logServices } = require('../SQL/SQL-utils');
 
 const routes = express.Router();
 
@@ -55,6 +56,25 @@ routes.get("/:user_id", async (req, res) => {
   } catch (error) {
     console.error("Error fetching log:", error);
     res.status(500).json({ error: "Failed to fetch log" });
+  }
+});
+
+routes.post('/', async (req, res) => {
+  try {
+    const { services } = req.body;
+    if (!Array.isArray(services) || services.length === 0) {
+      return res.status(400).json({ success: false, message: "No services provided" });
+    }
+    console.log("Services Availed:", services);
+    const servicePK = await getServicesPK(services);
+    const result = await logServices(servicePK, req.session.login.user_id);
+    if (!result.success) {
+      return res.status(400).json({ success: false, message: "Something went wrong" });
+    }
+    res.status(200).json({ success: true, loggedServices: result.loggedServices });
+  } catch (error) {
+    console.error("Error in /servicelogs:", error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 

@@ -4,7 +4,7 @@ let cachedKey = null;
 const OTPStore = new Map();
 
 function genRandom(x){
-    return salt = crypto.randomBytes(16*x).toString("hex");
+    return crypto.randomBytes(16*x).toString("hex");
 };
 
 function getKey() {

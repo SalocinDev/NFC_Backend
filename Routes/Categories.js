@@ -3,7 +3,7 @@ const pool = require("../SQL/conn.js")
 
 const routes = express.Router();
 
-// 📌 Get all categories
+
 routes.get("/", async (req, res) => {
   try {
     const [rows] = await pool.query("SELECT * FROM book_category_table");

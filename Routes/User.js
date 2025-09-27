@@ -15,7 +15,7 @@ routes.get("/", async (req, res) => {
              user_date_of_birth,
              user_gender,
              user_contact_number,
-             user_category,
+             user_category_id_fk,
              user_school,
              user_creation_time
       FROM library_user_table
@@ -25,6 +25,36 @@ routes.get("/", async (req, res) => {
   } catch (error) {
     console.error("Error fetching users:", error);
     res.status(500).json({ error: "Failed to fetch users" });
+  }
+});
+
+//available users
+routes.get("/available-users", async (req, res) => {
+  try {
+    const [rows] = await pool.query(/* `
+      SELECT u.user_id, CONCAT(u.user_firstname, ' ', u.user_lastname) AS full_name
+      FROM library_user_table u
+      WHERE u.user_id NOT IN (
+          SELECT bb.user_id_fk
+          FROM book_borrow_table bb
+          LEFT JOIN book_returned_table br ON bb.borrow_id = br.borrow_id_fk
+          WHERE br.date_returned IS NULL
+      );
+    ` */
+      `SELECT 
+      u.user_id, 
+      CONCAT(u.user_firstname, ' ', u.user_lastname) AS full_name
+      FROM library_user_table u;
+      `);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ success: false, message: "None Found for Users" });
+    }
+
+    res.status(200).json({ success: true, data: rows });
+  } catch (error) {
+    console.error("Error fetching available users:", error);
+    res.status(500).json({ success: false, message: error.message || error });
   }
 });
 

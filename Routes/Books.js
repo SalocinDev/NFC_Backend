@@ -6,26 +6,73 @@ const routes = express.Router();
 //GET all books with category
 routes.get("/", async (req, res) => {
   try {
-    const limit = parseInt(req.query.limit) || 500;
-    const search = req.query.search ? `%${req.query.search}%` : "%";
-
-    const [rows] = await pool.query(`
-      SELECT b.*, c.book_category_name 
-      FROM book_table b
-      LEFT JOIN book_category_table c 
-      ON b.book_category_id_fk = c.book_category_id
-      WHERE b.book_title LIKE ?
-      LIMIT ?
-    `, [search, limit]);
-
-    res.json(rows);
+    const { role } = req.query;
+    if (!role || role != "staff") {
+      res.status(401).json({ message: "Not authorized" });
+    }
+    if (role === "staff") {
+      const limit = parseInt(req.query.limit) || 500;
+      const search = req.query.search ? `%${req.query.search}%` : "%";
+      const [rows] = await pool.query(`
+        SELECT b.*, c.book_category_name 
+        FROM book_table b
+        LEFT JOIN book_category_table c 
+        ON b.book_category_id_fk = c.book_category_id
+        WHERE b.book_title LIKE ?
+        LIMIT ?
+        `, [search, limit]); 
+        res.json(rows);
+      }
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to fetch books" });
   }
 });
 
-routes.get("/:id", async (req, res) => {
+//available books
+routes.get("/available-books", async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT b.book_id, b.book_title
+      FROM book_table b
+      WHERE b.book_id NOT IN (
+        SELECT book_id_fk 
+        FROM book_borrow_table 
+        WHERE borrowed_due_date IS NULL
+      )
+    `);
+
+    res.status(200).json({ success: true, data: rows });
+  } catch (error) {
+    console.error("Error fetching available books:", error);
+    res.status(500).json({ success: false, message: error.message || error });
+  }
+});
+
+routes.get("/book-categories", async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT DISTINCT bc.book_category_id, bc.book_category_name
+      FROM book_category_table bc
+      JOIN book_table bt 
+        ON bt.book_category_id_fk = bc.book_category_id
+      WHERE bt.book_id NOT IN (
+        SELECT bb.book_id_fk
+        FROM book_borrow_table bb
+        LEFT JOIN book_returned_table br 
+          ON bb.borrow_id = br.borrow_id_fk
+        WHERE br.date_returned IS NULL
+      )
+    `);
+
+    res.status(200).json({ success: true, data: rows });
+  } catch (error) {
+    console.error("Error fetching available categories:", error);
+    res.status(500).json({ success: false, message: error.message || error });
+  }
+});
+
+routes.get(":id", async (req, res) => {
   try {
     const { id } = req.params;
     const [rows] = await pool.query(
@@ -37,6 +84,17 @@ routes.get("/:id", async (req, res) => {
     } else {
       res.status(400).json({message: "Book Not Found"})
     }
+/*     if (role === "user") {
+      const [rows] = await pool.query(
+        `SELECT * FROM book_table WHERE book_id = ?`,
+        [id]
+      );
+      if (rows.length > 0) {
+        res.status(200).json({rows});
+      } else {
+        res.status(400).json({message: "Book Not Found"})
+      }
+    } */
   } catch (error) {
     res.status(400).json({error: error.message || error})
   }
@@ -78,6 +136,30 @@ routes.post("/", async (req, res) => {
     res.status(500).json({ error: "Failed to add book" });
   }
 });
+
+routes.post("/:role", async (req, res) => {
+  try {
+    const { role } = req.params;
+    const formValues = req.body;
+    const { book_title, book_author, book_description, book_publisher, book_year_publish, book_category_id_fk, book_status, book_inventory, book_view_count } = formValues;
+    if (!role || !formValues) {
+      return res.status(400).json({ success: false, message: "Bad Request" })
+    }
+    if (role != "staff") {
+      return res.status(401).json({ success: false, message: "Not Authorized" })
+    }
+    const [result] = await pool.query(
+      `INSERT INTO book_table (book_title, book_author, book_description, book_publisher, book_year_publish, book_category_id_fk, book_status, book_inventory, book_view_count) VALUES (?,?,?,?,?,?,?,?,?)`,
+      [book_title, book_author, book_description, book_publisher, book_year_publish, book_category_id_fk, book_status, book_inventory, book_view_count]
+    )
+    if (result.affectedRows > 0){
+      return res.status(200).json({ success: true, message: "Book Successfully Added" })
+    }
+  } catch (error) {
+    console.log(error.message || error)
+    return res.status(500).json({ success: false, message: error.message || error});
+  }
+})
 
 //UPDATE book
 routes.put("/:id", async (req, res) => {

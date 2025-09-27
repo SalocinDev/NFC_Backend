@@ -7,7 +7,8 @@
     "devStop": "pm2 stop ecosystem.config.js",
     "devRestart": "pm2 restart ecosystem.config.js",
     "devStatus": "pm2 status",
-    "ngrok": "ngrok http --url=seriously-trusting-octopus.ngrok-free.app --host-header=localhost:3000 3000"
+    "ngrok": "ngrok http --url=seriously-trusting-octopus.ngrok-free.app --host-header=rewrite 3000",
+    "cloudflared": "cloudflared tunnel --url http://localhost:3000"
   },
   "keywords": [],
   "author": "",
@@ -18,6 +19,7 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
+    "express-mysql-session": "^3.0.3",
     "express-session": "^1.18.2",
     "multer": "^2.0.2",
     "mysql2": "^3.14.2",

@@ -4,14 +4,17 @@ require("dotenv").config();
 
 const express = require('express'); // express
 const session = require("express-session"); // express-session
-const { getKey } = require("./Crypto/crypto-utils");
+const { getKey, genRandom } = require("./Crypto/crypto-utils");
 /* const { getOTP, generateOTPandStoreOTP } = require("./Crypto/OTP"); */
 const bodyParser = require('body-parser'); // for json
+const verifyApiKey = require('./Middleware/apiKey')
 const path = require('path'); // path module for node
 const cors = require('cors'); // cors
+const MariaDBStore = require('./Middleware/sessionMariaDB')
 /* const { corsOptions } = require('./CORS/corswhitelist') */
 const app = express(); // instantiate express
 const port = 3000;
+const startTime = Date.now();
 
 // prepare path
 const indexHTML = path.join(__dirname, 'index.html');
@@ -25,7 +28,8 @@ const allowedOrigins = [
   "http://172.26.1.2:3000",
   "http://172.26.1.2:5000",
   "http://172.26.1.2:5001",
-  "https://124.6.136.178"
+  "https://124.6.136.178",
+  "http://manila.city.library"
 ];
 
 // Dynamic CORS middleware
@@ -37,7 +41,7 @@ app.use(cors({
 },
   credentials: true,
   methods: ['GET','POST','PUT','DELETE','OPTIONS'],
-  allowedHeaders: ['Content-Type','Authorization']
+  allowedHeaders: ['Content-Type','Authorization','x-api-key']
 }));
 
 app.use(bodyParser.json());
@@ -57,26 +61,23 @@ sameSite: 'none'
 }
 })); */
 
-// sessions storage. only exists in memory
-const MemoryStore = session.MemoryStore;
-const store = new MemoryStore();
-
 const isProduction = process.env.NODE_ENV === "production";
 const environment = process.env.NODE_ENV;
+const store = new MariaDBStore("main_sessions"); //single session table
 
-app.set("trust proxy", 1); // required for secure cookies behind ngrok/proxies
+app.set("trust proxy", 1); //required for secure cookies behind ngrok/proxies
 
 app.use(session({
-  name: "anongginagawamodito",
+  name: "main_session",
   secret: process.env.SESSION_SECRET || "shhhhhhhhhhhh",
   resave: false,
   saveUninitialized: false,
-  store: store,
+  store, //use the MariaDBStore
   cookie: {
-  httpOnly: true,
-  secure: isProduction,                         // only true when prod (ngrok/github)
-  sameSite: isProduction ? "none" : "lax",      // none for cross-site, lax for localhost
-  maxAge: 1000 * 60 * 60                        // 1 hour
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
+    maxAge: 1000 * 60 * 60 * 24 // 24 hrs
   }
 }));
 
@@ -91,7 +92,7 @@ app.use((req, res, next) => {
       "Content-Security-Policy",
       [
         `default-src 'self' ${apiUrl} https://salocindev.github.io https://phalluis.github.io`,
-        `script-src 'self' ${apiUrl} https://salocindev.github.io https://phalluis.github.io 'nonce-abc123'`,
+        `script-src 'self' ${apiUrl} https://salocindev.github.io https://phalluis.github.io`,
         `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
         `font-src 'self' https://fonts.gstatic.com`,
         `img-src 'self' ${apiUrl} data:`,
@@ -112,6 +113,7 @@ app.use((req, res, next) => {
   next();
 });
 
+/* app.use(verifyApiKey); */
 /* app.use(express.static(viteReactDist)); // to serve vite-react built files */
 
 // routing
@@ -151,18 +153,26 @@ console.log("User route loaded: /user");
 const aiRoute = require('./Routes/AI')
 console.log("AI route loaded: /ai")
 
-app.use('/nfc', nfcRoute);
-app.use('/acc', accRoute);
-app.use('/session', sessionRoute);
-app.use('/lib', libRoute);
-app.use('/file', fileRoute); 
-app.use('/books', booksRoute);
-app.use('/categories', categoriesRoute);
-app.use('/borrowing', borrowingRoute);
-app.use('/returning', returningRoute);
-app.use('/servicelogs', servicelogsRoute);
-app.use('/user', userRoute);
-app.use('/ai', aiRoute);
+const emailRoute = require('./Routes/Email')
+console.log("Email route loaded: /email")
+
+const serviceRoute = require('./Routes/Services')
+console.log("Services route loaded: /services")
+
+app.use('/nfc', verifyApiKey, nfcRoute);
+app.use('/acc', verifyApiKey, accRoute);
+app.use('/session', verifyApiKey, sessionRoute);
+app.use('/lib', verifyApiKey, libRoute);
+app.use('/file', verifyApiKey, fileRoute); 
+app.use('/books', verifyApiKey, booksRoute);
+app.use('/categories', verifyApiKey, categoriesRoute);
+app.use('/borrowing', verifyApiKey, borrowingRoute);
+app.use('/returning', verifyApiKey, returningRoute);
+app.use('/servicelogs', verifyApiKey, servicelogsRoute);
+app.use('/user', verifyApiKey, userRoute);
+app.use('/ai', verifyApiKey, aiRoute);
+app.use('/email', verifyApiKey, emailRoute);
+app.use('/services', verifyApiKey, serviceRoute);
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -194,6 +204,8 @@ app.get('/status', (req, res) => {
 });
 
 app.listen(port, "0.0.0.0", () => {
+  const endTime = Date.now();
   console.log(`Server Mode: ${environment}`);
   console.log(`Server running at ${port}`);
+  console.log(`Server started in ${endTime - startTime}ms`);
 });

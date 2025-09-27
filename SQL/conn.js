@@ -1,11 +1,11 @@
 const mysql2 = require('mysql2/promise');
-
+require("dotenv").config();
 const database = "librarydatabase";
 const pool = mysql2.createPool({
-  host: '172.26.1.2',
-  user: 'Capstone',
-  password: 'P4g*Ex]vwW!D[zof',
-  database: database,
+  host: process.env.MARIADB_HOST,
+  user: process.env.MARIADB_USER,
+  password: process.env.MARIADB_PASS,
+  database: process.env.MARIADB_DATABASE,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0

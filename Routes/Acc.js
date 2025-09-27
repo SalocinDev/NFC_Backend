@@ -1,7 +1,8 @@
 const express = require("express")
 const routes = express.Router();
 
-const { loginVerify, NFCloginVerify, signUp, checkAcc, verifyEmail, checkEmailVerification, checkEmail, changePassword, updateAccount, staffCheck } = require('../SQL/acc-utils');
+const pool = require("../SQL/conn")
+const { loginVerify, NFCloginVerify, signUp, checkAcc, verifyEmail, checkEmailVerification, checkEmail, changePassword, updateAccount, staffCheck, checkServiceLogs } = require('../SQL/acc-utils');
 const { getUserID, getUserInfoviaHash, getInfo, checkIfExisting } = require("../SQL/SQL-utils");
 const { sendOTPthroughMail } = require("../nodemailer/sendOTP")
 const { hashAll, genRandom, verifyOTP, OTPStore  } = require("../Crypto/crypto-utils");
@@ -17,7 +18,10 @@ routes.post('/login-verify', async (req, res) => {
       if (checkIfStaff.success) {
 /*         console.log(checkIfStaff.data); */
         console.log(`Staff: ${checkIfStaff.data.staff_firstname} has Logged In`)
-        req.session.login = {role: "staff", ...checkIfStaff.data};
+        req.session.login = {
+          role: "staff", 
+          loggedIn: true, 
+          ...checkIfStaff.data};
 
         return req.session.save(err => {
         if (err) {
@@ -28,6 +32,7 @@ routes.post('/login-verify', async (req, res) => {
         res.status(200).json({
           success: true,
           role: "staff",
+          loggedIn: true,
           ...checkIfStaff.data
         });
       });
@@ -69,7 +74,8 @@ routes.post('/login-verify', async (req, res) => {
         console.log(`User: ${result.data.user_firstname} has Logged In`)
         res.status(200).json({
           success: true,
-          role: "user",
+          role: "user", 
+          loggedIn: true,
           ...result.data
         });
       });
@@ -106,6 +112,8 @@ routes.post('/login-verify', async (req, res) => {
         console.log(`User: ${result.data.user_firstname} has Logged In`)
         res.status(200).json({
           success: true,
+          role: "user", 
+          loggedIn: true,
           ...result.data
         });
       });
@@ -143,7 +151,7 @@ routes.post('/sign-up', async (req, res) => {
     }
 
     if (accountExisting.exists) {
-      return res.status(409).json({ success: false, message: accountExisting.message });
+      return res.status(409).json({ success: false, message: "OTP Has Been Sent", error: accountExisting.message });
     }
     //signing up
     const result = await signUp(email, password, firstName, middleName, lastName, dob, gender, contactNumber, school);
@@ -162,6 +170,9 @@ routes.post('/sign-up', async (req, res) => {
 });
 
 routes.post('/logout', (req, res) =>{
+  if (!req.session.login) {
+    return res.status(500).json({success: false, message: "Not logged in"})
+  }
   console.log(req.session.login.user_firstname+": Logging Off")
   req.session.destroy(err => {
     if (err) {
@@ -282,8 +293,8 @@ routes.post('/change-password', async (req, res) => {
 
 routes.put("/update", async (req, res) => {
   try {
-    const { email, updates, oldPassword, newPassword } = req.body;
-    const result = await updateAccount(email, updates, oldPassword, newPassword);
+    const updates = req.body;
+    const result = await updateAccount(updates);
     res.status(200).json(result);
   } catch (err) {
     console.error("Update route error:", err);
@@ -291,5 +302,75 @@ routes.put("/update", async (req, res) => {
   }
 });
 
+routes.post("/relogin", async (req, res) => {
+  try {
+    const { email, token } = req.body;
+
+    let user;
+    let checkLogs;
+
+    if (email) {
+      //normal relogin via email
+      const [rows] = await pool.query(
+        `SELECT * FROM library_user_table WHERE user_email = ?`,
+        [email]
+      );
+      if (rows.length === 0) {
+        return res.status(401).json({ success: false, message: "User not found" });
+      }
+      user = rows[0];
+
+      // Check if user has logged today
+      checkLogs = await checkServiceLogs(email);
+      if (!checkLogs.success) {
+        return res.status(400).json({ success: false, message: checkLogs.message });
+      }
+
+    } else if (token) {
+      //NFC login via token
+      const [rows] = await pool.query(
+        `SELECT * FROM library_user_table WHERE nfc_token = ?`,
+        [token]
+      );
+      if (rows.length === 0) {
+        return res.status(401).json({ success: false, message: "Invalid NFC token" });
+      }
+      user = rows[0];
+
+      //check if user has logged today
+      checkLogs = await checkServiceLogs(user.user_email);
+      if (!checkLogs.success) {
+        return res.status(400).json({ success: false, message: checkLogs.message });
+      }
+
+    } else {
+      return res.status(400).json({ success: false, message: "No login credentials provided" });
+    }
+
+    //remove sensitive fields before saving session
+    const { user_password, user_password_salt, ...userData } = user;
+
+    //save session
+    req.session.login = { role: "user", loggedIn: true, ...userData };
+    req.session.save(err => {
+      if (err) {
+        console.error("Session save error:", err);
+        return res.status(500).json({ success: false, error: "Failed to save session" });
+      }
+
+      console.log(`User: ${userData.user_firstname} has Logged In`);
+      res.status(200).json({
+        success: true,
+        role: "user",
+        loggedIn: true,
+        ...userData
+      });
+    });
+
+  } catch (error) {
+    console.error("Relogin error:", error);
+    return res.status(500).json({ success: false, message: error.message || error });
+  }
+});
 
 module.exports = routes;

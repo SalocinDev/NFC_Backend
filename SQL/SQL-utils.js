@@ -174,32 +174,41 @@ async function writetoDB(data) {
 }
 
 async function getServicesPK(servicesArray) {
-    try {
-        const [rows] = await pool.query(
-            `SELECT library_service_id FROM library_services_table WHERE library_service_name IN (?)`,
-            [servicesArray]
-        );
-        return rows.map(r => r.library_service_id);
-    } catch (error) {
-        console.error("Error fetching service IDs:", error);
-        return [];
+  try {
+    if (!Array.isArray(servicesArray) || servicesArray.length === 0) {
+      return [];
     }
+    const placeholders = servicesArray.map(() => "?").join(", ");
+
+    const [rows] = await pool.query(
+      `SELECT library_service_id 
+       FROM library_services_table 
+       WHERE library_service_name IN (${placeholders})`,
+      servicesArray
+    );
+    return rows.map(r => r.library_service_id);
+  } catch (error) {
+    console.error("Error fetching service IDs:", error);
+    return [];
+  }
 }
 
 async function logServices(servicesPK, user_id) {
-    try {
-        for (const serviceId of servicesPK) {
-            await pool.query(
-                `INSERT INTO user_library_log (log_service_id_fk, user_id_fk) VALUES (?, ?)`,
-                [serviceId, user_id]
-            );
-        }
-        console.log("Services logged successfully.");
-        return { success: true }
-    } catch (error) {
-        console.error("Error logging services:", error);
-        return { success: false }
+  try {
+    if (!Array.isArray(servicesPK) || servicesPK.length === 0) {
+      return { success: false, message: "No services to log." };
     }
+    const values = servicesPK.map(serviceId => [serviceId, user_id]);
+    await pool.query(
+      `INSERT INTO user_library_log (log_service_id_fk, user_id_fk) VALUES ?`,
+      [values]
+    );
+    console.log("Services logged successfully.");
+    return { success: true, loggedServices: servicesPK };
+  } catch (error) {
+    console.error("Error logging services:", error);
+    return { success: false, error: error.message };
+  }
 }
 
 module.exports = {

@@ -14,28 +14,22 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-async function sendEmail(recipient, subject, text) {
+async function sendEmail(recipient, subject, message) {
     try {
         const mailOptions = {
             from: email,
             to: recipient,
             subject: subject,
-            text: text
+            text: message
         };
 
-        return new Promise((resolve, reject) => {
-            transporter.sendMail(mailOptions, (error, info) => {
-                if (error) {
-                    console.error("Error sending email:", error);
-                    return reject(error);
-                }
-                console.log("Email sent:", info.response);
-                resolve({ info });
-            });
-        });
-    } catch (err) {
-        console.error("Error generating/sending email:", err);
-        throw err;
+        const info = await transporter.sendMail(mailOptions);
+        console.log("Email sent:", info.response);
+        return { success: true, info };
+
+    } catch (error) {
+        console.error("Error generating/sending email:", error);
+        return { success: false, error };
     }
 }
 
@@ -47,8 +41,8 @@ async function sendEmail(recipient, subject, text) {
     .catch(err => {
       console.error("Failed to send email:", err);
     });
-})();
- */
+})(); */
+
 module.exports = {
     sendEmail
 };

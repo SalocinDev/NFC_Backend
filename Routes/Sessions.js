@@ -4,10 +4,12 @@ module.exports = (store) => {
   const routes = express.Router();
 
   routes.post("/get-session", (req, res) => {
-    if (req.session && req.session.login) {
+    try {
+      if (req.session && req.session.login) {
       res.status(200).json({
         loggedIn: true,
-        data: req.session.login,
+        role: "user", 
+        ...req.session.login,
         /* user: req.session.login.user_id,
         firstName: req.session.login.user_firstname,
         middleName: req.session.login.user_middlename,
@@ -19,8 +21,11 @@ module.exports = (store) => {
         nfcToken: req.session.login.nfc_token,
         sessionID: req.session.id, */
       });
-    } else {
-      res.status(200).json({ loggedIn: false, message: "Not Logged in", err: "no req.session.login" });
+      } else {
+        res.status(200).json({ loggedIn: false, message: "Not Logged in", err: "no req.session.login" });
+      }
+    } catch (error) {
+      res.status(500).json({ success: false, message: "User not Logged In" })
     }
   });
 

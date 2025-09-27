@@ -21,39 +21,4 @@ routes.post('/get-books', async (req, res) => {
   }
 });
 
-routes.post('/services', async (req, res) => {
-  try {
-    const {...data} = req.body;
-    if (!data || Object.keys(data).length === 0){
-      return res.status(400).json({ success: false, message: "No services chosen" })
-    }
-
-    const result = await writetoDB(data);
-    if (!result){
-      return res.status(500).json({ success: false, message: "Write to database error" })
-    }
-  } catch (error) {
-    
-  }
-});
-
-routes.post('/user-services', async (req, res ) => {
-  try {
-    const { services } = req.body;
-    const strServices = JSON.stringify(services);
-    const servicesArray = strServices.split(",").map(s => s.trim());
-    // console.log(servicesArray);
-    const servicePK = await getServicesPK(servicesArray);
-    console.log("Services Availed :"+servicePK);
-    
-    const result = await logServices(servicePK, req.session.login.user_id)
-    if (!result.success) {
-      return res.status(400).json({ success: false, message: "Something went wrong" })
-    }
-    res.status(200).json({ success: true })
-  } catch (error) {
-    res.status(500).json({ success: false })
-  }
-})
-
 module.exports = routes;

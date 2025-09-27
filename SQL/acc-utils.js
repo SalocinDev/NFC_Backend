@@ -337,6 +337,31 @@ async function getProfilePicture(user_pfp_id) {
   }
 }
 
+async function checkServiceLogs(email) {
+  try {
+    let userID = null;
+    const [result] = await pool.query(
+      `SELECT user_id FROM library_user_table WHERE user_email = ?`,
+      [email]
+    )
+    if (result.length > 0) {
+      userID = result[0].user_id;
+    }
+    
+    const [rows] = await pool.query(
+      `SELECT * FROM user_library_log WHERE user_id_fk = ? AND DATE(log_time) = CURDATE()`,
+      [userID]
+    );
+    if (rows.length > 0) {
+      return { success: true, data: rows[0], message: "User Has Logged in for Today"};
+    }
+    return { success: false, message: "user has not logged in for today" };
+  } catch (error) {
+    console.error("Error checking logs:", error);
+    return { success: false, message: error.message || error };
+  }
+}
+
 module.exports = { 
   staffCheck,
   loginVerify,
@@ -349,5 +374,6 @@ module.exports = {
   changePassword,
   updateAccount,
   updateProfilePicture,
-  getProfilePicture
+  getProfilePicture,
+  checkServiceLogs
 };
