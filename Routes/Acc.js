@@ -315,9 +315,22 @@ routes.post("/relogin", async (req, res) => {
         `SELECT * FROM library_user_table WHERE user_email = ?`,
         [email]
       );
+
       if (rows.length === 0) {
+        // not a user, check staff
+        const [staffRows] = await pool.query(
+          `SELECT * FROM library_staff_table WHERE staff_email = ?`,
+          [email]
+        );
+
+        if (staffRows.length > 0) {
+          // staff found → return success:false, but with 200
+          return res.status(200).json({ success: false, message: "Is Staff" });
+        }
+
         return res.status(401).json({ success: false, message: "User not found" });
       }
+
       user = rows[0];
 
       // Check if user has logged today
@@ -327,7 +340,7 @@ routes.post("/relogin", async (req, res) => {
       }
 
     } else if (token) {
-      //NFC login via token
+      // NFC login via token (users only)
       const [rows] = await pool.query(
         `SELECT * FROM library_user_table WHERE nfc_token = ?`,
         [token]
@@ -337,7 +350,7 @@ routes.post("/relogin", async (req, res) => {
       }
       user = rows[0];
 
-      //check if user has logged today
+      // check if user has logged today
       checkLogs = await checkServiceLogs(user.user_email);
       if (!checkLogs.success) {
         return res.status(400).json({ success: false, message: checkLogs.message });
@@ -347,10 +360,10 @@ routes.post("/relogin", async (req, res) => {
       return res.status(400).json({ success: false, message: "No login credentials provided" });
     }
 
-    //remove sensitive fields before saving session
+    // remove sensitive fields before saving session
     const { user_password, user_password_salt, ...userData } = user;
 
-    //save session
+    // save session
     req.session.login = { role: "user", loggedIn: true, ...userData };
     req.session.save(err => {
       if (err) {
@@ -372,5 +385,6 @@ routes.post("/relogin", async (req, res) => {
     return res.status(500).json({ success: false, message: error.message || error });
   }
 });
+
 
 module.exports = routes;

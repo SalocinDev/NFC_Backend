@@ -201,14 +201,45 @@ routes.put("/:id", async (req, res) => {
 });
 
 //DELETE book
-routes.delete("/:id", async (req, res) => {
+routes.delete("/", async (req, res) => {
   try {
-    const { id } = req.params;
+    const { id } = req.query;
     await pool.query("DELETE FROM book_table WHERE book_id=?", [id]);
     res.json({ success: true });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to delete book" });
+  }
+});
+
+routes.delete("/:role", async (req, res) => {
+  try {
+    const selectedIds = req.body;
+    const { role } = req.params;
+    if (!Array.isArray(selectedIds) || selectedIds.length === 0) {
+      return res.status(400).json({ success: false, message: "No IDs provided" });
+    }
+    if (role !== "staff") {
+      return res.status(401).json({ success: false, message: "Not Authorized" });
+    }
+    const placeholders = selectedIds.map(() => "?").join(",");
+    const checkSql = `SELECT b.book_id, b.book_title, b.book_author FROM book_borrow_table bb JOIN book_table b ON bb.book_id_fk = b.book_id WHERE b.book_id IN (${placeholders})`;
+    const [rows] = await pool.query(checkSql, selectedIds);
+
+    if (rows.length > 0) {
+      return res.status(400).json({success: false, message: "Cannot delete books that are still referenced in borrow records.",books: rows
+      });
+    }
+    
+    const deleteSql = `DELETE FROM book_table WHERE book_id IN (${placeholders})`;
+    const [result] = await pool.query(deleteSql, selectedIds);
+    if (result.affectedRows === 0) {
+      return res.status(400).json({ success: false, message: "Database Error!" });
+    }
+    return res.status(200).json({ success: true, message: "Deleted Successfully!" });
+  } catch (error) {
+    console.log(error.message || error);
+    return res.status(500).json({ success: false, message: error.message || error });
   }
 });
 

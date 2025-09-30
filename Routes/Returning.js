@@ -134,4 +134,31 @@ routes.post("/:role", async (req, res) => {
   }
 });
 
+routes.delete("/:role", async (req, res) => {
+  try {
+    const selectedIds = req.body;
+    const { role } = req.params;
+
+    if (!Array.isArray(selectedIds) || selectedIds.length === 0) {
+      return res.status(400).json({ success: false, message: "No IDs provided" });
+    }
+    if (role !== "staff") {
+      return res.status(401).json({ success: false, message: "Not Authorized" });
+    }
+
+    const placeholders = selectedIds.map(() => "?").join(",");
+    const sql = `DELETE FROM book_returned_table WHERE book_returned_id IN (${placeholders})`;
+
+    const [result] = await pool.query(sql, selectedIds);
+
+    if (result.affectedRows === 0) {
+      return res.status(400).json({ success: false, message: "Database Error!" });
+    }
+    return res.status(200).json({ success: true, message: "Deleted Successfully!" });
+  } catch (error) {
+    console.log(error.message || error);
+    return res.status(500).json({ success: false, message: error.message || error });
+  }
+});
+
 module.exports = routes;

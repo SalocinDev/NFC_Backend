@@ -1,4 +1,5 @@
 const express = require("express");
+const pool = require("../SQL/conn")
 
 module.exports = (store) => {
   const routes = express.Router();
