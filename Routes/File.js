@@ -1,21 +1,39 @@
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
+const sharp = require('sharp');
 const { updateProfilePicture, getProfilePicture } = require("../SQL/acc-utils");
-require('dotenv').config;
+require('dotenv').config();
+
 const router = express.Router();
-const isProduction = process.env.NODE_env
-const apiUrl = process.env.BACKEND_URL === "https://seriously-trusting-octopus.ngrok-free.app" || "http://172.26.1.2:3000"
-const sharp = require("sharp");
 
+//Fix: Use correct NODE_ENV variable name
+const isProduction = process.env.NODE_ENV === "production";
+
+//Fix: Use proper conditional logic for backend URL
+const apiUrl =
+  process.env.BACKEND_URL ||
+  (isProduction
+    ? "https://seriously-trusting-octopus.ngrok-free.app"
+    : "http://172.26.1.2:3000");
+
+//Add file size limit (10 MB)
 const storage = multer.memoryStorage();
-const upload = multer({ storage });
+const upload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 } //10 MB
+});
 
+//Profile Picture Upload
 router.post('/profile-picture-update', upload.single('file'), async (req, res) => {
   try {
     const userID = req.session?.login?.user_id;
     if (!userID) {
       return res.status(401).json({ error: "Not logged in" });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
     }
 
     const compressedBuffer = await sharp(req.file.buffer)
@@ -26,7 +44,6 @@ router.post('/profile-picture-update', upload.single('file'), async (req, res) =
       .png({ quality: 100 })
       .toBuffer();
 
-    /* const profilePictureName = req.file.originalname.replace(/\.[^/.]+$/, ".jpg"); */
     const profilePictureName = `profile-${userID}.png`;
     const result = await updateProfilePicture(profilePictureName, compressedBuffer, userID);
 
@@ -36,11 +53,15 @@ router.post('/profile-picture-update', upload.single('file'), async (req, res) =
 
     res.json({ success: true });
   } catch (err) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({ error: "File too large (max 10MB)" });
+    }
     console.error(err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
+//Serve Profile Picture
 router.post('/profile-picture/:user_pfp_id', async (req, res) => {
   try {
     const { user_pfp_id } = req.params;

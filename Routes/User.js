@@ -154,18 +154,47 @@ routes.put("/:id", async (req, res) => {
   }
 });
 
-// Delete user
-routes.delete("/:id", async (req, res) => {
+// Delete multiple users with restriction (no active borrowings)
+routes.delete("/", async (req, res) => {
   try {
-    const [result] = await pool.query("DELETE FROM library_user_table WHERE user_id=?", [
-      req.params.id,
-    ]);
-    if (result.affectedRows === 0) return res.status(404).json({ error: "User not found" });
-    res.json({ message: "User deleted successfully" });
+    const ids = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: "No user IDs provided" });
+    }
+    const [borrowedUsers] = await pool.query(
+      `
+      SELECT DISTINCT bb.user_id_fk
+      FROM book_borrow_table bb
+      LEFT JOIN book_returned_table br ON bb.borrow_id = br.borrow_id_fk
+      WHERE br.date_returned IS NULL
+      AND bb.user_id_fk IN (?);
+      `,
+      [ids]
+    );
+
+    if (borrowedUsers.length > 0) {
+      const borrowedIds = borrowedUsers.map(u => u.user_id_fk);
+      return res.status(400).json({
+        success: false,
+        message: `Cannot delete users with active borrowings: ${borrowedIds.join(", ")}`,
+      });
+    }
+    const [result] = await pool.query(
+      `DELETE FROM library_user_table WHERE user_id IN (?)`,
+      [ids]
+    );
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "No users found to delete" });
+    }
+    res.status(200).json({
+      success: true,
+      message: `${result.affectedRows} user(s) deleted successfully`,
+    });
   } catch (error) {
-    console.error("Error deleting user:", error);
-    res.status(500).json({ error: "Failed to delete user" });
+    console.error("Error deleting users:", error);
+    res.status(500).json({ error: "Failed to delete users" });
   }
 });
+
 
 module.exports = routes;

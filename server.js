@@ -4,6 +4,7 @@ const session = require("express-session");
 const bodyParser = require("body-parser");
 const path = require("path");
 const cors = require("cors");
+const pool = require("./SQL/conn")
 
 const MariaDBStore = require("./Middleware/sessionMariaDB");
 const verifyApiKey = require("./Middleware/apiKey");
@@ -45,7 +46,8 @@ app.use(cors({
 }));
 
 //body parser
-app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: "10mb" }));
+app.use(bodyParser.urlencoded({ limit: "10mb", extended: true }));
 
 //session 
 const store = new MariaDBStore("main_sessions");
@@ -107,6 +109,15 @@ app.use("/ai", verifyApiKey, require("./Routes/AI")); console.log("AI Route Load
 app.use("/email", verifyApiKey, require("./Routes/Email")); console.log("Email Route Loaded: /email");
 app.use("/services", verifyApiKey, require("./Routes/Services")); console.log("Services Route Loaded: /services");
 app.use("/statsreports", verifyApiKey, require("./Routes/StatsReports")); console.log("Stats Reports Route Loaded: /statsreports");
+app.use("/reportsexport", verifyApiKey, require("./Routes/ReportsExport")); console.log("Reports Export Route Loaded: /reportsexport");
+app.use("/opac", verifyApiKey, require("./Routes/Opac")); console.log("Opac Route Loaded: /opac");
+app.use("/uploads",
+  express.static(path.join(__dirname, "uploads"), {
+    setHeaders: (res) => {
+      res.setHeader("Content-Security-Policy", "default-src 'self'");
+    },
+  })
+);
 
 //debug
 app.get("/view", (req, res) => {
@@ -130,6 +141,21 @@ app.get("/status", (req, res) => {
     origin,
   });
 });
+
+let clearOnce = true;
+//clear database sessions
+async function clearDatabaseSessionsOnStart() {
+  if (clearOnce) {
+    await pool.query(
+      `DELETE FROM main_sessions`
+    )
+    clearOnce = false;
+    console.log("Sessions Cleared!");
+  } else if (!clearOnce) {
+    console.log("Sessions has Already been Cleared!");
+  }
+}
+clearDatabaseSessionsOnStart()
 
 //start
 app.listen(port, "0.0.0.0", () => {
