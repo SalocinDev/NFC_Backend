@@ -106,118 +106,121 @@ routes.get("/", async (req, res) => {
   }
 });
 
-// GET /opac/search?q=...&type=keyword|title|author&category=&startDate=&endDate=&sort=
 routes.get("/search", async (req, res) => {
   try {
-    let { q, type, category, startDate, endDate, sort } = req.query;
+    const {
+      q = "",
+      type = "keyword", // keyword | title | author
+      category = "all",
+      startDate,
+      endDate,
+      sort = "title-asc",
+    } = req.query;
 
-    q = (q || "").trim();
-    type = type || "keyword";
-    category = category || "all";
-    startDate = startDate || "";
-    endDate = endDate || "";
-    sort = sort || "title_asc";
+    // Base SQL
+    let sql = `
+      SELECT 
+        b.book_id,
+        b.book_title,
+        b.book_author,
+        b.book_description,
+        b.book_publisher,
+        b.book_year_publish,
+        b.book_cover_img,
+        b.book_status,
+        b.book_view_count,
+        c.book_category_name AS book_category,
+        (
+          (b.book_title LIKE ?) * 3 + 
+          (b.book_author LIKE ?) * 2 + 
+          (b.book_publisher LIKE ?) * 1
+        ) AS relevance_score
+      FROM book_table b
+      LEFT JOIN book_category_table c 
+        ON b.book_category_id_fk = c.book_category_id
+      WHERE 1=1
+    `;
 
-    // If no query provided
-    if (!q && category === "all" && !startDate && !endDate) {
-      return res.json([]);
-    }
+    const params = [`%${q}%`, `%${q}%`, `%${q}%`];
 
-    // Build WHERE conditions dynamically
-    const conditions = [];
-    const params = [];
-
-    if (q) {
+    // Search by type
+    if (q.trim()) {
       if (type === "title") {
-        conditions.push("b.book_title LIKE ?");
+        sql += " AND b.book_title LIKE ?";
         params.push(`%${q}%`);
       } else if (type === "author") {
-        conditions.push("b.book_author LIKE ?");
+        sql += " AND b.book_author LIKE ?";
         params.push(`%${q}%`);
       } else {
-        // keyword = title or author
-        conditions.push("(b.book_title LIKE ? OR b.book_author LIKE ?)");
-        params.push(`%${q}%`, `%${q}%`);
+        sql +=
+          " AND (b.book_title LIKE ? OR b.book_author LIKE ? OR b.book_publisher LIKE ?)";
+        params.push(`%${q}%`, `%${q}%`, `%${q}%`);
       }
     }
 
     // Category filter
     if (category !== "all") {
-      conditions.push("b.book_category_id_fk = ?");
+      sql += " AND c.book_category_name = ?";
       params.push(category);
     }
 
-    // Date range
+    // Date filter
     if (startDate && endDate) {
-      conditions.push("DATE(b.book_year_publish) BETWEEN ? AND ?");
+      sql += " AND b.book_year_publish BETWEEN ? AND ?";
       params.push(startDate, endDate);
-    } else if (startDate) {
-      conditions.push("DATE(b.book_year_publish) >= ?");
-      params.push(startDate);
-    } else if (endDate) {
-      conditions.push("DATE(b.book_year_publish) <= ?");
-      params.push(endDate);
+    } else if (startDate || endDate) {
+      return res
+        .status(400)
+        .json({ error: "Both start and end dates are required." });
     }
 
-    // Sorting
-    let orderBy = "b.book_title ASC";
+    // Sorting logic
     switch (sort) {
-      case "title_desc":
-        orderBy = "b.book_title DESC";
+      case "relevance":
+        sql += " ORDER BY relevance_score DESC, b.book_title ASC";
         break;
-      case "author_asc":
-        orderBy = "b.book_author ASC";
+      case "title-asc":
+        sql += " ORDER BY b.book_title ASC";
         break;
-      case "author_desc":
-        orderBy = "b.book_author DESC";
+      case "title-desc":
+        sql += " ORDER BY b.book_title DESC";
         break;
-      case "views_asc":
-        orderBy = "b.book_view_count ASC";
+      case "author-asc":
+        sql += " ORDER BY b.book_author ASC";
         break;
-      case "views_desc":
-        orderBy = "b.book_view_count DESC";
+      case "author-desc":
+        sql += " ORDER BY b.book_author DESC";
         break;
-      case "recent":
-        orderBy = "b.book_year_publish DESC";
+      case "views-asc":
+        sql += " ORDER BY b.book_view_count ASC";
         break;
-      case "oldest":
-        orderBy = "b.book_year_publish ASC";
+      case "views-desc":
+        sql += " ORDER BY b.book_view_count DESC";
+        break;
+      case "pub-recent":
+        sql += " ORDER BY b.book_year_publish DESC";
+        break;
+      case "pub-oldest":
+        sql += " ORDER BY b.book_year_publish ASC";
+        break;
+      default:
+        sql += " ORDER BY b.book_title ASC";
         break;
     }
 
-    const whereClause = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+    //console.log("🟦 Final SQL:\n", sql);
+    //console.log("🟨 Params:", params);
 
-    const [rows] = await pool.query(
-      `
-      SELECT 
-        b.book_id,
-        b.book_title,
-        b.book_cover_img,
-        b.book_author,
-        b.book_description,
-        b.book_publisher,
-        b.book_year_publish,
-        b.book_status,
-        b.book_inventory,
-        b.book_view_count,
-        c.book_category_name AS book_category
-      FROM book_table b
-      LEFT JOIN book_category_table c ON b.book_category_id_fk = c.book_category_id
-      ${whereClause}
-      ORDER BY ${orderBy};
-      `,
-      params
-    );
-
+    const [rows] = await pool.query(sql, params);
     res.json(rows);
   } catch (err) {
-    console.error("Error in /opac/search:", err);
-    res.status(500).json({
-      error: "Failed to search books",
-      details: err.sqlMessage || err.message,
-    });
+    console.error("❌ Search error:", err);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
+
+
+
 
 
 
@@ -338,6 +341,39 @@ routes.get("/similar", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch similar books" });
   }
 });
+
+// Routes/Opac.js
+routes.post("/get-books", async (req, res) => {
+  try {
+    const [rows] = await pool.query("SELECT * FROM book_table");
+    res.json(rows);
+  } catch (err) {
+    console.error("Error fetching books:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+
+// GET /opac/book/:id
+routes.get("/book/:id", async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT b.*, c.book_category_name
+       FROM book_table b
+       LEFT JOIN book_category_table c
+       ON b.book_category_id_fk = c.book_category_id
+       WHERE b.book_id = ?`,
+      [req.params.id]
+    );
+
+    if (rows.length === 0) return res.status(404).json({ error: "Book not found" });
+    res.json(rows[0]);
+  } catch (err) {
+    console.error("Book detail error:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 
 // Get a single book by ID with category name
 routes.get("/:id", async (req, res) => {

@@ -153,7 +153,7 @@ routes.post("/:role", async (req, res) => {
   try {
     const { role } = req.params;
     const formValues = req.body;
-    const { book_id_fk, user_id_fk, book_borrowed_date, borrowed_due_date } = formValues;
+    const { book_id_fk, user_id_fk, book_borrowed_date, borrowed_due_date, Note } = formValues;
     if (!role || !formValues) {
       return res.status(400).json({ success: false, message: "Bad Request" })
     }
@@ -163,9 +163,11 @@ routes.post("/:role", async (req, res) => {
       return res.status(401).json({ success: false, message: "Not Authorized" })
     }
     const [result] = await pool.query(
-      `INSERT INTO book_borrow_table (book_id_fk, user_id_fk, book_borrowed_date, borrowed_due_date) VALUES (?,?,?,?)`,
-      [book_id_fk, user_id_fk, book_borrowed_date, borrowed_due_date]
-    )
+      `INSERT INTO book_borrow_table (book_id_fk, user_id_fk, book_borrowed_date, borrowed_due_date, Note)
+      VALUES (?, ?, ?, ?, ?)`,
+      [book_id_fk, user_id_fk, book_borrowed_date, borrowed_due_date, Note]
+    );
+
     if (result.affectedRows > 0){
       await pool.query(
         `UPDATE book_table SET book_inventory = book_inventory - 1, book_status = CASE WHEN book_inventory - 1 <= 0 THEN 'unavailable' ELSE 'available' END WHERE book_id = ?`,
