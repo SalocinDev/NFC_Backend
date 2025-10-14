@@ -47,21 +47,17 @@ routes.post('/login-verify', async (req, res) => {
       }
 
       const isEmailVerified = await checkEmailVerification(email);
-
       if (!isEmailVerified.success){
         return res.status(400).json(isEmailVerified);
       }
 
       const result = await loginVerify({ email, password });
-
       if (!result.success) {
         return res.status(401).json({
           success: false,
           error: "Invalid credentials"
         });
       }
-
-/*       console.log(result.data) */
 
       req.session.login = {role: "user", ...result.data};
       
@@ -70,7 +66,6 @@ routes.post('/login-verify', async (req, res) => {
           console.error("Session save error:", err);
           return res.status(500).json({ success: false, error: "Failed to save session" });
         }
-/*         console.log("Session after email login:", req.session); */
         console.log(`User: ${result.data.user_firstname} has Logged In`)
         res.status(200).json({
           success: true,
@@ -151,7 +146,7 @@ routes.post('/sign-up', async (req, res) => {
     }
 
     if (accountExisting.exists) {
-      return res.status(409).json({ success: false, message: "OTP Has Been Sent", error: accountExisting.message });
+      return res.status(409).json({ success: false, message: accountExisting.message });
     }
     //signing up
     const result = await signUp(email, password, firstName, middleName, lastName, dob, gender, contactNumber, school);
@@ -169,20 +164,24 @@ routes.post('/sign-up', async (req, res) => {
   }
 });
 
-routes.post('/logout', (req, res) =>{
-  if (!req.session.login) {
-    return res.status(500).json({success: false, message: "Not logged in"})
+routes.post('/logout', (req, res) => {
+  if (!req.session || !req.session.login) {
+    res.clearCookie("anongginagawamodito");
+    return res.json({ success: true, message: "No active session — already logged out" });
   }
-  console.log(req.session.login.user_firstname+": Logging Off")
+
+  console.log(req.session.login.user_firstname + ": Logging Off");
+
   req.session.destroy(err => {
     if (err) {
       console.error("Session destroy error:", err);
       return res.status(500).json({ success: false, message: "Could not log out" });
     }
     res.clearCookie("anongginagawamodito");
-    res.status(200).json({ success: true, message: "Logged out successfully!" });
+    res.json({ success: true, message: "Logged out successfully!" });
   });
-})
+});
+
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -332,9 +331,11 @@ routes.post("/relogin", async (req, res) => {
       }
 
       user = rows[0];
-
+      // console.log(user);
+      
       // Check if user has logged today
       checkLogs = await checkServiceLogs(email);
+      // console.log("checkLogs result:", checkLogs);
       if (!checkLogs.success) {
         return res.status(400).json({ success: false, message: checkLogs.message });
       }
@@ -349,13 +350,14 @@ routes.post("/relogin", async (req, res) => {
         return res.status(401).json({ success: false, message: "Invalid NFC token" });
       }
       user = rows[0];
+      // console.log(user);
 
       // check if user has logged today
       checkLogs = await checkServiceLogs(user.user_email);
+      // console.log("checkLogs result:", checkLogs);
       if (!checkLogs.success) {
         return res.status(400).json({ success: false, message: checkLogs.message });
       }
-
     } else {
       return res.status(400).json({ success: false, message: "No login credentials provided" });
     }
@@ -385,6 +387,5 @@ routes.post("/relogin", async (req, res) => {
     return res.status(500).json({ success: false, message: error.message || error });
   }
 });
-
 
 module.exports = routes;

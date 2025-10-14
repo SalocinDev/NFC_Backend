@@ -17,6 +17,7 @@ routes.get("/", async (req, res) => {
              user_contact_number,
              user_category_id_fk,
              user_school,
+             nfc_token,
              user_creation_time
       FROM library_user_table
       ORDER BY user_id ASC
@@ -158,6 +159,7 @@ routes.put("/:id", async (req, res) => {
 routes.delete("/", async (req, res) => {
   try {
     const ids = req.body;
+    console.log(`Deleting User(s): ${ids}`);
     if (!Array.isArray(ids) || ids.length === 0) {
       return res.status(400).json({ error: "No user IDs provided" });
     }
@@ -174,10 +176,7 @@ routes.delete("/", async (req, res) => {
 
     if (borrowedUsers.length > 0) {
       const borrowedIds = borrowedUsers.map(u => u.user_id_fk);
-      return res.status(400).json({
-        success: false,
-        message: `Cannot delete users with active borrowings: ${borrowedIds.join(", ")}`,
-      });
+      return res.status(400).json({ success: false, message: `Cannot delete users with active borrowings: ${borrowedIds.join(", ")}`, });
     }
     const [result] = await pool.query(
       `DELETE FROM library_user_table WHERE user_id IN (?)`,
@@ -186,15 +185,12 @@ routes.delete("/", async (req, res) => {
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: "No users found to delete" });
     }
-    res.status(200).json({
-      success: true,
-      message: `${result.affectedRows} user(s) deleted successfully`,
-    });
+    console.log(`Deleted User(s): ${ids}`);
+    res.status(200).json({ success: true, message: `${result.affectedRows} user(s) deleted successfully`, });
   } catch (error) {
     console.error("Error deleting users:", error);
     res.status(500).json({ error: "Failed to delete users" });
   }
 });
-
 
 module.exports = routes;

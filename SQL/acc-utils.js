@@ -355,7 +355,7 @@ async function checkServiceLogs(email) {
     if (rows.length > 0) {
       return { success: true, data: rows[0], message: "User Has Logged in for Today"};
     }
-    return { success: false, message: "user has not logged in for today" };
+    return { success: false, message: "User has not logged in for today" };
   } catch (error) {
     console.error("Error checking logs:", error);
     return { success: false, message: error.message || error };

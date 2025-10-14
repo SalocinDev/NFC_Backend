@@ -30,13 +30,13 @@ routes.get("/:id", async (req, res) => {
         ON brt.borrow_id_fk = bbt.borrow_id
       JOIN book_table bt
         ON bbt.book_id_fk = bt.book_id
-      WHERE brt.user_id_fk = ?
+      WHERE bbt.user_id_fk = ?
     `;
     const [rows] = await pool.query(sql, [req.params.id]);
     if (rows.length > 0) {
       res.json(rows);
     } else {
-      res.status(400).json({ success: false, message: "None Found for User" })
+      res.status(400).json({ success: false, message: "None Found for User" });
     }
   } catch (error) {
     console.error("Error fetching log:", error);
@@ -102,7 +102,7 @@ routes.post("/:role", async (req, res) => {
   try {
     const { role } = req.params;
     const formValues = req.body;
-    const { borrow_id_fk, date_returned, user_id_fk } = formValues;
+    const { borrow_id_fk, date_returned, Notes } = formValues;
     if (!role || !formValues) {
       return res.status(400).json({ success: false, message: "Bad Request" });
     }
@@ -110,8 +110,8 @@ routes.post("/:role", async (req, res) => {
       return res.status(401).json({ success: false, message: "Not Authorized" });
     }
     const [result] = await pool.query(
-      `INSERT INTO book_returned_table (borrow_id_fk, date_returned, user_id_fk) VALUES (?,?,?)`,
-      [borrow_id_fk, date_returned, user_id_fk]
+      `INSERT INTO book_returned_table (borrow_id_fk, date_returned, Notes) VALUES (?,?,?)`,
+      [borrow_id_fk, date_returned, Notes]
     );
     if (result.affectedRows > 0) {
       const [[borrowRecord]] = await pool.query(

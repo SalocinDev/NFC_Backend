@@ -1,3 +1,4 @@
+//TO DO ILIPAT YUNG UPLOAD NG BOOKS DITO na nasa OPAC
 const express = require("express")
 const pool = require("../SQL/conn.js")
 const multer = require("multer");
@@ -8,26 +9,11 @@ const routes = express.Router();
 //GET all books with category
 routes.get("/", async (req, res) => {
   try {
-    const { role } = req.query;
-    if (!role || role != "staff") {
-      res.status(401).json({ message: "Not authorized" });
-    }
-    if (role === "staff") {
-      const limit = parseInt(req.query.limit) || 500;
-      const search = req.query.search ? `%${req.query.search}%` : "%";
-      const [rows] = await pool.query(`
-        SELECT b.*, c.book_category_name 
-        FROM book_table b
-        LEFT JOIN book_category_table c 
-        ON b.book_category_id_fk = c.book_category_id
-        WHERE b.book_title LIKE ?
-        LIMIT ?
-        `, [search, limit]); 
-        res.json(rows);
-      }
+    const [rows] = await pool.query("SELECT * FROM book_table");
+    res.type("application/json").status(200).json(rows);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Failed to fetch books" });
+    res.status(500).json({ error: "Failed to fetch book table" });
   }
 });
 
