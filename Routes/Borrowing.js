@@ -153,7 +153,7 @@ routes.post("/:role", async (req, res) => {
   try {
     const { role } = req.params;
     const formValues = req.body;
-    const { book_id_fk, user_id_fk, book_borrowed_date, borrowed_due_date, Note } = formValues;
+    const { book_id_fk, user_id_fk, book_borrowed_date, borrowed_due_date, Borrow_Status } = formValues;
     if (!role || !formValues) {
       return res.status(400).json({ success: false, message: "Bad Request" })
     }
@@ -163,9 +163,9 @@ routes.post("/:role", async (req, res) => {
       return res.status(401).json({ success: false, message: "Not Authorized" })
     }
     const [result] = await pool.query(
-      `INSERT INTO book_borrow_table (book_id_fk, user_id_fk, book_borrowed_date, borrowed_due_date, Note)
+      `INSERT INTO book_borrow_table (book_id_fk, user_id_fk, book_borrowed_date, borrowed_due_date, Borrow_Status)
       VALUES (?, ?, ?, ?, ?)`,
-      [book_id_fk, user_id_fk, book_borrowed_date, borrowed_due_date, Note]
+      [book_id_fk, user_id_fk, book_borrowed_date, borrowed_due_date, Borrow_Status]
     );
 
     if (result.affectedRows > 0){

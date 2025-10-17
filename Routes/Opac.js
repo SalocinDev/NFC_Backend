@@ -72,7 +72,7 @@ routes.post("/", upload.single("cover"), async (req, res) => {
       ]
     );
 
-    res.json({ success: true, book_id: result.insertId });
+    res.status(200).json({ success: true, message: "Book Successfully Added!", book_id: result.insertId });
   } catch (err) {
     console.error("Error adding book:", err);
     res.status(500).json({ error: err.message || "Failed to add book" });

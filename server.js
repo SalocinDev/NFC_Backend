@@ -111,6 +111,7 @@ app.use("/services", verifyApiKey, require("./Routes/Services")); console.log("S
 app.use("/statsreports", verifyApiKey, require("./Routes/StatsReports")); console.log("Stats Reports Route Loaded: /statsreports");
 app.use("/reportsexport", verifyApiKey, require("./Routes/ReportsExport")); console.log("Reports Export Route Loaded: /reportsexport");
 app.use("/opac", verifyApiKey, require("./Routes/Opac")); console.log("Opac Route Loaded: /opac");
+app.use("/wifi", verifyApiKey, require("./Routes/Wifi")); console.log("Wifi Route Loaded: /wifi");
 app.use("/uploads",
   express.static(path.join(__dirname, "uploads"), {
     setHeaders: (res) => {

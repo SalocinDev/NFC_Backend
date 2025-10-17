@@ -40,23 +40,24 @@ routes.get("/available-books", async (req, res) => {
 routes.get("/book-categories", async (req, res) => {
   try {
     const [rows] = await pool.query(`
-      SELECT DISTINCT bc.book_category_id, bc.book_category_name
-      FROM book_category_table bc
-      JOIN book_table bt 
-        ON bt.book_category_id_fk = bc.book_category_id
-      WHERE bt.book_id NOT IN (
-        SELECT bb.book_id_fk
-        FROM book_borrow_table bb
-        LEFT JOIN book_returned_table br 
-          ON bb.borrow_id = br.borrow_id_fk
-        WHERE br.date_returned IS NULL
-      )
+      SELECT 
+        book_category_id,
+        book_category_name
+      FROM book_category_table
+      ORDER BY book_category_name ASC
     `);
 
-    res.status(200).json({ success: true, data: rows });
+    res.status(200).json({
+      success: true,
+      count: rows.length,
+      data: rows
+    });
   } catch (error) {
-    console.error("Error fetching available categories:", error);
-    res.status(500).json({ success: false, message: error.message || error });
+    console.error("Error fetching book categories:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Server error"
+    });
   }
 });
 
