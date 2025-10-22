@@ -36,7 +36,7 @@ routes.get("/:id", async (req, res) => {
     if (rows.length > 0) {
       res.json(rows);
     } else {
-      res.status(400).json({ success: false, message: "None Found for User" });
+      res.status(204).json({ success: false, message: "None Found for User" });
     }
   } catch (error) {
     console.error("Error fetching log:", error);

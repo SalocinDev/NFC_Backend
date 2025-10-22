@@ -48,7 +48,7 @@ routes.post('/login-verify', async (req, res) => {
 
       const isEmailVerified = await checkEmailVerification(email);
       if (!isEmailVerified.success){
-        return res.status(400).json(isEmailVerified);
+        return res.status(403).json(isEmailVerified);
       }
 
       const result = await loginVerify({ email, password });
