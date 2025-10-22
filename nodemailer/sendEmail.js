@@ -34,7 +34,7 @@ async function sendEmail(recipient, subject, message) {
 }
 
 /* (async () => {
-  sendEmail("nicholaslonganilla@gmail.com","General Email Sending Test","This is a Test")
+  sendEmail("inglesajohnrey01@gmail.com","JanRay","Bading bading bading bading")
     .then(result => {
       console.log("email sent", result);
     })

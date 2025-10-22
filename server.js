@@ -1,6 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const session = require("express-session");
+const rateLimit = require('express-rate-limit');
 const bodyParser = require("body-parser");
 const path = require("path");
 const cors = require("cors");
@@ -17,7 +18,13 @@ const startTime = Date.now();
 const isProduction = process.env.NODE_ENV === "production";
 const environment = process.env.NODE_ENV;
 
-// const indexHTML = path.join(__dirname, "index.html");
+const indexHTML = path.join(__dirname, "index.html");
+
+const limiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minutes
+  max: 100, //;imit each IP to 100 requests per `window` (here, per 15 minutes)
+  message: "Too many requests from this IP, please try again after 15 minutes",
+});
 
 //cors
 const allowedOrigins = [
@@ -94,24 +101,26 @@ app.use((req, res, next) => {
 });
 
 //attach routes (CORS already applied globally)
-app.use("/nfc", verifyApiKey, require("./Routes/NFC")); console.log("NFC Route Loaded: /nfc");
-app.use("/acc", verifyApiKey, require("./Routes/Acc")); console.log("Account Route Loaded: /acc");
-app.use("/session", require("./Routes/Sessions")(store)); console.log("Session Route Loaded: /session");
-app.use("/lib", verifyApiKey, require("./Routes/Library")); console.log("Library Route Loaded: /lib");
-app.use("/file", verifyApiKey, require("./Routes/File")); console.log("File Route Loaded: /file");
-app.use("/books", verifyApiKey, require("./Routes/Books")); console.log("Books Route Loaded: /books");
-app.use("/categories", verifyApiKey, require("./Routes/Categories")); console.log("Categories Route Loaded: /categories");
-app.use("/borrowing", verifyApiKey, require("./Routes/Borrowing")); console.log("Borrowing Route Loaded: /borrowing");
-app.use("/returning", verifyApiKey, require("./Routes/Returning")); console.log("Returning Route Loaded: /returning");
+app.use("/nfc", verifyApiKey, limiter, require("./Routes/NFC")); console.log("NFC Route Loaded: /nfc");
+app.use("/acc", verifyApiKey, limiter, require("./Routes/Acc")); console.log("Account Route Loaded: /acc");
+app.use("/session", verifyApiKey, limiter, require("./Routes/Sessions")(store)); console.log("Session Route Loaded: /session");
+app.use("/lib", verifyApiKey, limiter, require("./Routes/Library")); console.log("Library Route Loaded: /lib");
+app.use("/file", verifyApiKey, limiter, require("./Routes/File")); console.log("File Route Loaded: /file");
+app.use("/books", verifyApiKey, limiter, require("./Routes/Books")); console.log("Books Route Loaded: /books");
+app.use("/categories", verifyApiKey, limiter, require("./Routes/Categories")); console.log("Categories Route Loaded: /categories");
+app.use("/borrowing", verifyApiKey, limiter, require("./Routes/Borrowing")); console.log("Borrowing Route Loaded: /borrowing");
+app.use("/returning", verifyApiKey, limiter, require("./Routes/Returning")); console.log("Returning Route Loaded: /returning");
 app.use("/servicelogs", verifyApiKey, require("./Routes/ServiceLogs")); console.log("Service Logs Route Loaded: /servicelogs");
-app.use("/user", verifyApiKey, require("./Routes/User")); console.log("User Route Loaded: /user");
-app.use("/ai", verifyApiKey, require("./Routes/AI")); console.log("AI Route Loaded: /ai");
-app.use("/email", verifyApiKey, require("./Routes/Email")); console.log("Email Route Loaded: /email");
-app.use("/services", verifyApiKey, require("./Routes/Services")); console.log("Services Route Loaded: /services");
-app.use("/statsreports", verifyApiKey, require("./Routes/StatsReports")); console.log("Stats Reports Route Loaded: /statsreports");
-app.use("/reportsexport", verifyApiKey, require("./Routes/ReportsExport")); console.log("Reports Export Route Loaded: /reportsexport");
-app.use("/opac", verifyApiKey, require("./Routes/Opac")); console.log("Opac Route Loaded: /opac");
-app.use("/wifi", verifyApiKey, require("./Routes/Wifi")); console.log("Wifi Route Loaded: /wifi");
+app.use("/user", verifyApiKey, limiter, require("./Routes/User")); console.log("User Route Loaded: /user");
+app.use("/ai", verifyApiKey, limiter, require("./Routes/AI")); console.log("AI Route Loaded: /ai");
+app.use("/email", verifyApiKey, limiter, require("./Routes/Email")); console.log("Email Route Loaded: /email");
+app.use("/services", verifyApiKey, limiter, require("./Routes/Services")); console.log("Services Route Loaded: /services");
+app.use("/statsreports", verifyApiKey, limiter, require("./Routes/StatsReports")); console.log("Stats Reports Route Loaded: /statsreports");
+app.use("/reportsexport", verifyApiKey, limiter, require("./Routes/ReportsExport")); console.log("Reports Export Route Loaded: /reportsexport");
+app.use("/opac", verifyApiKey, limiter, require("./Routes/Opac")); console.log("Opac Route Loaded: /opac");
+app.use("/wifi", verifyApiKey, limiter, require("./Routes/Wifi")); console.log("Wifi Route Loaded: /wifi");
+app.use("/userlibrarylog", verifyApiKey, limiter, require("./Routes/UserLibraryLog")); console.log("UserLibraryLog Route Loaded: /userlibrarylog");
+app.use("/survey", verifyApiKey, limiter, require("./Routes/Survey")); console.log("Survey Route Loaded: /survey");
 app.use("/uploads",
   express.static(path.join(__dirname, "uploads"), {
     setHeaders: (res) => {
