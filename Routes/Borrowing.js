@@ -168,7 +168,10 @@ routes.post("/:role", async (req, res) => {
       [book_id_fk, user_id_fk, book_borrowed_date, borrowed_due_date, Borrow_Status]
     );
 
-    if (result.affectedRows > 0){
+    if (result.affectedRows === 0) {
+      return res.status(204).json({ success: false, message: "No Record for user" })
+    }
+    if (result.affectedRows > 0) {
       await pool.query(
         `UPDATE book_table SET book_inventory = book_inventory - 1, book_status = CASE WHEN book_inventory - 1 <= 0 THEN 'unavailable' ELSE 'available' END WHERE book_id = ?`,
         [book_id_fk]

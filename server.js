@@ -113,14 +113,18 @@ app.use("/returning", verifyApiKey, limiter, require("./Routes/Returning")); con
 app.use("/servicelogs", verifyApiKey, require("./Routes/ServiceLogs")); console.log("Service Logs Route Loaded: /servicelogs");
 app.use("/user", verifyApiKey, limiter, require("./Routes/User")); console.log("User Route Loaded: /user");
 app.use("/ai", verifyApiKey, limiter, require("./Routes/AI")); console.log("AI Route Loaded: /ai");
+// app.use("/ai", verifyApiKey, limiter, require("./Routes/aiRoute")); console.log("AI Route Loaded: /ai");
+app.use("/ai", verifyApiKey, limiter, require("./Routes/AI"));
 app.use("/email", verifyApiKey, limiter, require("./Routes/Email")); console.log("Email Route Loaded: /email");
 app.use("/services", verifyApiKey, limiter, require("./Routes/Services")); console.log("Services Route Loaded: /services");
 app.use("/statsreports", verifyApiKey, limiter, require("./Routes/StatsReports")); console.log("Stats Reports Route Loaded: /statsreports");
 app.use("/reportsexport", verifyApiKey, limiter, require("./Routes/ReportsExport")); console.log("Reports Export Route Loaded: /reportsexport");
-app.use("/opac", verifyApiKey, limiter, require("./Routes/Opac")); console.log("Opac Route Loaded: /opac");
 app.use("/wifi", verifyApiKey, limiter, require("./Routes/Wifi")); console.log("Wifi Route Loaded: /wifi");
 app.use("/userlibrarylog", verifyApiKey, limiter, require("./Routes/UserLibraryLog")); console.log("UserLibraryLog Route Loaded: /userlibrarylog");
 app.use("/survey", verifyApiKey, limiter, require("./Routes/Survey")); console.log("Survey Route Loaded: /survey");
+//const AIRoutes = require("./Routes/AIroutes");
+//app.use("/api/ai", AIRoutes); 
+app.use("/opac", verifyApiKey, limiter, require("./Routes/Opac")); console.log("Opac Route Loaded: /opac");
 app.use("/uploads",
   express.static(path.join(__dirname, "uploads"), {
     setHeaders: (res) => {

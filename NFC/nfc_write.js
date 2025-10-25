@@ -22,7 +22,8 @@ function writeNFC(payload) {
         // remove prior listeners, if any, to avoid memory leaks
         reader.removeListener('card', onCard);
         reader.removeListener('card-removed', onCardRemoved);
-
+        console.log(card);
+        
         // checks if the card is an NTAG215 card
         if (!isNTAG215(card)) {
           reader.close();
@@ -33,7 +34,7 @@ function writeNFC(payload) {
         const dataStr = JSON.stringify(payload);
 
         if (!dataStr || !payload.token /* || !payload.user_id */) {
-          return reject(new Error("Invalid payload: missing required fields"));
+          return reject({ success: false, message: "" });
         };
 
         /* const user_id = payload.user_id; */
@@ -55,9 +56,9 @@ function writeNFC(payload) {
           // todo: check if payload is already in the database before proceeding
           await writeJSONToNTAG215(reader, fullPayload, startPage);
           console.log("Card written successfully.");
-          resolve(); // resolve with no parameters because there's nothing to return
+          resolve({ success: true, message: "Card written successfully" }); // resolve with no parameters because there's nothing to return (hotfix, there is not something to return :))
         } catch (err) { // catch error
-          reject(err);
+          reject({ success: false, message: err.message || err });
         } finally { // close reader when done to prevent accidental cloning
           reader.close();
         }

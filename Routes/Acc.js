@@ -337,7 +337,7 @@ routes.post("/relogin", async (req, res) => {
       checkLogs = await checkServiceLogs(email);
       // console.log("checkLogs result:", checkLogs);
       if (!checkLogs.success) {
-        return res.status(400).json({ success: false, message: checkLogs.message });
+        return res.status(202).json({ success: false, message: checkLogs.message, tite: true });
       }
 
     } else if (token) {
@@ -356,7 +356,7 @@ routes.post("/relogin", async (req, res) => {
       checkLogs = await checkServiceLogs(user.user_email);
       // console.log("checkLogs result:", checkLogs);
       if (!checkLogs.success) {
-        return res.status(400).json({ success: false, message: checkLogs.message });
+        return res.status(202).json({ success: false, message: checkLogs.message });
       }
     } else {
       return res.status(400).json({ success: false, message: "No login credentials provided" });

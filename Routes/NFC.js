@@ -17,21 +17,27 @@ routes.post('/write', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid or missing JSON payload' });
     }
 
-    await writeNFC(payload);
+    const result = await writeNFC(payload);
+    if (!result.success) {
+      return res.status(400).json({ success: false, message: result.message })
+    }
     res.status(200).json({ success: true, message: 'NFC card written successfully' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: 'Failed to write NFC card' });
+    res.status(500).json({ success: false, message: err.message || err });
   }
 });
 
 routes.post('/read', async (req, res) => {
   if (!checkReader()) {
-    return res.status(503).json({ success: false, message: "No NFC reader attached" });
+    return res.status(503).json({ success: false, reader_attached: false, message: "No NFC reader attached" });
   }
   try {
     const data = await readNFC();
-    res.status(200).json(data);
+    if (!data.data && !data.valid) {
+      return res.status(400).json({ success: false, message: "No Compatible Data in NFC", ...data })
+    }
+    res.status(200).json({ success: true, reader_attached: true, message: "NFC has been Read!", ...data});
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: 'Failed to read NFC card' });
@@ -73,4 +79,11 @@ routes.post("/token", async (req, res) => {
   }
 });
 
+routes.get("/", async (req, res) => {
+  try {
+    return res.status(200).json({ success: true, message: "NFC Route" })
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message || error.message })
+  }
+})
 module.exports = routes;
