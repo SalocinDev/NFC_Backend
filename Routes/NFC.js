@@ -28,7 +28,7 @@ routes.post('/write', async (req, res) => {
   }
 });
 
-routes.post('/read', async (req, res) => {
+routes.get('/read', async (req, res) => {
   if (!checkReader()) {
     return res.status(503).json({ success: false, reader_attached: false, message: "No NFC reader attached" });
   }
@@ -44,7 +44,7 @@ routes.post('/read', async (req, res) => {
   }
 });
 
-routes.post('/check-reader', (req, res) => {
+routes.get('/check-reader', (req, res) => {
   res.json({ connected: checkReader() });
 });
 

@@ -132,8 +132,8 @@ routes.post('/login-verify', async (req, res) => {
 
 routes.post('/sign-up', async (req, res) => {
   try {
-    const { email, password, firstName, middleName, lastName, dob, gender, contactNumber, school } = req.body;
-    console.log("Signing up with:", email, password, firstName, middleName, lastName, dob, gender, contactNumber, school);
+    const { email, password, firstName, middleName, lastName, dob, gender, contactNumber, school, category } = req.body;
+    console.log("Signing up with:", email, firstName, middleName, lastName, dob, gender, contactNumber, school, category);
 
     if (!(email && password && firstName && middleName && lastName)) {
       return res.status(400).json({ success: false, message: "Missing required fields" });
@@ -149,7 +149,7 @@ routes.post('/sign-up', async (req, res) => {
       return res.status(409).json({ success: false, message: accountExisting.message });
     }
     //signing up
-    const result = await signUp(email, password, firstName, middleName, lastName, dob, gender, contactNumber, school);
+    const result = await signUp(email, password, firstName, middleName, lastName, dob, gender, contactNumber, school, category);
 
     if (!result.success) {
       return res.status(500).json({ success: false, message: "Error in signup" });

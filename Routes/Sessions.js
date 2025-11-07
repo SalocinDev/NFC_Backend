@@ -4,15 +4,15 @@ const pool = require("../SQL/conn")
 module.exports = (store) => {
   const routes = express.Router();
 
-  routes.post("/get-session", (req, res) => {
+  routes.get("/get-session", (req, res) => {
     try {
       if (req.session && req.session.login) {
       res.status(200).json({
         loggedIn: true,
         role: "user", 
         ...req.session.login,
-        /* user: req.session.login.user_id,
-        firstName: req.session.login.user_firstname,
+        user: req.session.login.user_id,
+        /*firstName: req.session.login.user_firstname,
         middleName: req.session.login.user_middlename,
         lastName: req.session.login.user_lastname,
         dob: req.session.login.user_date_of_birth,

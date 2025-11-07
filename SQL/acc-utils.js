@@ -64,7 +64,7 @@ async function NFCloginVerify({ token }) {
   }
 }
 
-async function signUp(email, password, firstName, middleName, lastName, dob, gender, contactNumber, school){
+async function signUp(email, password, firstName, middleName, lastName, dob, gender, contactNumber, school, category){
     try {
       const nfc_token = genRandom(2);
       const salt = genRandom(1);
