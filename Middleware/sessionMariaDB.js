@@ -1,7 +1,6 @@
 // Middleware/MariaDBStore.js
 const session = require("express-session");
 const conn = require("../SQL/conn");
-
     class MariaDBStore extends session.Store {
     constructor(tableName) {
         super();
@@ -21,23 +20,28 @@ const conn = require("../SQL/conn");
         }
     }
     async set(sid, sessionData, callback) {
-    try {
-        const data = JSON.stringify(sessionData);
-        const userId = sessionData?.login?.user_id || null;
-        const staffId = sessionData?.login?.staff_id || null;
-
-        const idColumn = this.table.startsWith("user") ? "user_id" : "staff_id";
-        const idValue = idColumn === "user_id" ? userId : staffId;
-
-        await this.conn.query(
-            `REPLACE INTO ${this.table} (session_id, ${idColumn}, session_data)
-            VALUES (?, ?, ?)`,
-            [sid, idValue, data]
-        );
-        callback(null);
-    } catch (err) {
-        callback(err);
-    }
+        try {
+            const data = JSON.stringify(sessionData);
+            let idColumn = null;
+            let idValue = null;
+            if (sessionData?.login) {
+            if (sessionData.login.user_id) {
+                idColumn = "user_id";
+                idValue = sessionData.login.user_id;
+            } else if (sessionData.login.staff_id) {
+                idColumn = "staff_id";
+                idValue = sessionData.login.staff_id;
+            }
+            }
+            const columns = ["session_id", ...(idColumn ? [idColumn] : []), "session_data"];
+            const placeholders = columns.map(() => "?").join(", ");
+            const values = [sid, ...(idValue ? [idValue] : []), data];
+            const sql = `REPLACE INTO ${this.table} (${columns.join(", ")}) VALUES (${placeholders})`;
+            await this.conn.query(sql, values);
+            callback(null);
+        } catch (err) {
+            callback(err);
+        }
     }
   async destroy(sid, callback) {
         try {

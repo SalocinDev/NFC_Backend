@@ -52,7 +52,7 @@ routes.get("/categories", async (req, res) => {
       FROM user_category_table AS u
       ORDER BY u.user_category_id ASC
     `);
-    return res.status(200).json(rows);
+    return res.status(200).json({ success: true, data: rows });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ success: false, message: error.message || error });

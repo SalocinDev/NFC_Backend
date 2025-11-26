@@ -7,13 +7,27 @@ const routes = express.Router();
 //get all borrow
 routes.get("/", async (req, res) => {
   try {
-    const [rows] = await pool.query("SELECT * FROM book_borrow_table");
-    res.type("application/json").status(200).json(rows);
+    const [rows] = await pool.query(`
+      SELECT 
+        bb.borrow_id,
+        bb.book_id_fk,
+        b.book_title,
+        bb.user_id_fk,
+        CONCAT(u.user_firstname, ' ', u.user_lastname) AS user_name,
+        bb.book_borrowed_date,
+        bb.borrowed_due_date,
+        bb.Borrow_Status
+      FROM book_borrow_table bb
+      JOIN book_table b ON bb.book_id_fk = b.book_id
+      JOIN library_user_table u ON bb.user_id_fk = u.user_id
+    `);
+    res.status(200).json(rows);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to fetch borrowed table" });
   }
 });
+
 
 // Get all currently borrowed books with borrow_id
 routes.get("/borrowing-id", async (req, res) => {

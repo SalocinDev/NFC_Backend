@@ -11,12 +11,12 @@ async function wipeNTAG215(reader) {
       await reader.write(page, zeroBlock, 4);
       process.stdout.write(`\rWiping page ${page}/${endPage}`);
     } catch (err) {
-      console.error(`\n❌ Failed to wipe page ${page}:`, err.message || err);
+      console.error(`\nFailed to wipe page ${page}:`, err.message || err);
       throw err;
     }
   }
 
-  console.log('\n✅ NTAG215 card wiped successfully.');
+  console.log('\nNTAG215 card wiped successfully.');
 }
 
 function clearNFC() {
@@ -31,7 +31,7 @@ function clearNFC() {
         console.log('Card detected.');
 
         if (!isNTAG215(card)) {
-          console.error('❌ Not an NTAG215 card.');
+          console.error('Not an NTAG215 card.');
           reader.close();
           return reject(new Error('Not an NTAG215 card'));
         }

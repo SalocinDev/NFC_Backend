@@ -1,258 +1,244 @@
-// ============================
-// AI Library Chat Module (Smart Book Recommender + Service Awareness)
-// ============================
+// Routes/aiRoute.js
+// Replaces previous hard-coded route: uses DB for facts + GPT-4 for friendly phrasing.
+// Requires: npm install openai axios dotenv
+require('dotenv').config();
 
 const express = require('express');
-const pool = require('../SQL/conn.js'); // Database connection
+const pool = require('../SQL/conn.js'); // <-- your existing MySQL pool
+const OpenAI = require('openai');
 const router = express.Router();
 
-// ------------------------
-// INTENT PARSER
-// ------------------------
-function parseIntent(message) {
-  const text = String(message || '').toLowerCase();
-
-  const sortPopular = /\b(popular|top|trending|best|most\s+viewed|sikat|pinaka(?:popular|sikat)|pinakamarami|trending)\b/.test(text);
-
-  const yearAfter = (() => {
-    const m = text.match(/\b(?:after|since|from|pagkatapos\s+ng|mula|simula)\s+(19|20)\d{2}\b/);
-    return m ? Number(m[0].match(/(19|20)\d{2}/)[0]) : null;
-  })();
-
-  const yearBefore = (() => {
-    const m = text.match(/\b(?:before|until|prior\s+to|bago\s+ang)\s+(19|20)\d{2}\b/);
-    return m ? Number(m[0].match(/(19|20)\d{2}/)[0]) : null;
-  })();
-
-  const author = (() => {
-    const by = text.match(/\bby\s+([a-z][a-z .'-]+)\b/i);
-    const ni = text.match(/\b(?:ni|akda\s+ni)\s+([a-z][a-z .'-]+)\b/i);
-    return (by?.[1] || ni?.[1] || '').trim();
-  })();
-
-  const synonyms = {
-    horror: ['horror','nakakatakot','thriller','katatakutan'],
-    romance: ['romance','romantic','pag-ibig','romansa','love','kilig'],
-    fantasy: ['fantasy','pantasiya','magic','wizard','dragon','epic'],
-    mystery: ['mystery','misteryo','detective','krimen','crime'],
-    science: ['science','sci-fi','agham','technology','ai','robot'],
-    historical: ['historical','kasaysayan','history'],
-    adventure: ['adventure','pakikipagsapalaran','journey','quest'],
-    biography: ['biography','talambuhay','memoir'],
-    selfhelp: ['self-help','self help','productivity','habits']
-  };
-
-  const terms = new Set();
-  for (const [genre, list] of Object.entries(synonyms)) {
-    if (list.some(w => text.includes(w))) list.forEach(w => terms.add(genre));
-  }
-
-  text.split(/\s+/).forEach(w => {
-    const clean = w.replace(/[^a-z0-9-ñáéíóúü]/g, '').trim();
-    if (clean.length > 2) terms.add(clean);
-  });
-
-  const filipinoHints = [' ang ', ' ng ', ' sa ', ' ni ', ' ito ', ' iyon ', ' ako ', ' mo ', ' mga '];
-  const likelyFilipino = filipinoHints.some(h => text.includes(h.trim()));
-  const lang = likelyFilipino ? 'fil' : 'en';
-
-  return { author, yearAfter, yearBefore, sortPopular, terms: Array.from(terms), lang };
-}
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
+const MODEL = process.env.OPENAI_MODEL || 'gpt-4';
 
 // ------------------------
-// DATABASE SEARCH
+// Domain restriction
 // ------------------------
-async function searchBooks(conn, intent, limit = 10) {
-  const { author, yearAfter, yearBefore, sortPopular, terms } = intent;
-  const whereParts = [];
-  const params = [];
-
-  if (terms.length > 0) {
-    const like = `%${terms.join('%')}%`;
-    whereParts.push(`
-      (LOWER(book_title) LIKE ? OR
-       LOWER(book_description) LIKE ? OR
-       LOWER(book_author) LIKE ? OR
-       LOWER(book_publisher) LIKE ?)
-    `);
-    params.push(like, like, like, like);
-  }
-
-  if (author) {
-    whereParts.push(`LOWER(book_author) LIKE ?`);
-    params.push(`%${author.toLowerCase()}%`);
-  }
-
-  if (yearAfter) {
-    whereParts.push(`book_year_publish >= ?`);
-    params.push(yearAfter);
-  }
-
-  if (yearBefore) {
-    whereParts.push(`book_year_publish <= ?`);
-    params.push(yearBefore);
-  }
-
-  const whereSql = whereParts.length ? `WHERE ${whereParts.join(' AND ')}` : '';
-  const orderSql = sortPopular ? `ORDER BY book_view_count DESC, book_title ASC` : `ORDER BY book_title ASC`;
-
-  const [rows] = await conn.query(`
-    SELECT book_id, book_title, book_author, book_description, book_publisher, book_year_publish, book_view_count
-    FROM book_table
-    ${whereSql}
-    ${orderSql}
-    LIMIT ?`, [...params, limit]);
-
-  return rows;
-}
-
-// ------------------------
-// SMART RECOMMENDATION (Fallback)
-// ------------------------
-async function smartRecommendation(conn, limit = 5) {
-  const [rows] = await conn.query(`
-    SELECT book_id, book_title, book_author, book_description, book_publisher, book_year_publish
-    FROM book_table
-    ORDER BY book_view_count DESC
-    LIMIT ?`, [limit]);
-  return rows;
-}
-
-// ------------------------
-// FIND SIMILAR BOOKS
-// ------------------------
-async function findSimilarBooks(conn, keyword, limit = 5) {
-  const like = `%${keyword}%`;
-  const [rows] = await conn.query(`
-    SELECT book_id, book_title, book_author, book_description, book_publisher, book_year_publish
-    FROM book_table
-    WHERE LOWER(book_title) LIKE ? OR LOWER(book_description) LIKE ?
-    ORDER BY book_view_count DESC
-    LIMIT ?`, [like, like, limit]);
-  return rows;
-}
-
-// ------------------------
-// LIBRARY SERVICE REPLIES
-// ------------------------
-function checkForServices(message, lang = 'en') {
-  const text = message.toLowerCase();
-  const serviceKeywords = ['service', 'services', 'library service', 'anong serbisyo', 'mga serbisyo'];
-  if (!serviceKeywords.some(k => text.includes(k))) return null;
-
-  const services = [
-    '📚 Books',
-    '📖 Fiction',
-    '🕮 Special Collection',
-    '🎓 Library Orientation',
-    '📰 Periodicals',
-    '🤝 Reading Buddy',
-    '💡 Tutorial(s)',
-    '🏛️ Use of Library Space',
-    '💻 Computer User',
-    '🌐 Computer With Internet',
-    '📘 E-Books',
-    '🏛️ E-Gov User',
-    '📚 E-Resources',
-    '📶 Digital Literacy',
-    '📡 Wi-Fi User'
+function isLibraryRelated(text) {
+  if (!text) return false;
+  const s = text.toLowerCase();
+  const allowed = [
+    'book','books','author','publisher','genre','borrow','return','reserve',
+    'library','opac','nfc','wifi','wi-fi','e-book','ebook','periodical','magazine',
+    'journal','special collection','orientation','tutorial','reading buddy',
+    'computer','internet','e-resources','e-gov','egov','services','availability',
+    'title','isbn'
   ];
-
-  if (lang === 'fil') {
-    return `Narito ang mga serbisyo na inaalok ng aming aklatan:\n\n${services.join('\n')}`;
-  }
-  return `Here are the available library services:\n\n${services.join('\n')}`;
+  return allowed.some(k => s.includes(k));
 }
 
 // ------------------------
-// GREETING & BEHAVIOR
+// Intent parsing (simple)
 // ------------------------
-function checkForGreeting(message, lang = 'en') {
-  const greetings = ['hi', 'hello', 'good morning', 'good afternoon', 'good evening', 'hey'];
-  const lower = message.toLowerCase();
-  if (greetings.some(g => lower.includes(g))) {
-    return lang === 'fil'
-      ? 'Magandang araw! Ako ang iyong Library Assistant. Maaari mo akong tanungin tungkol sa mga libro o serbisyo ng aklatan.'
-      : '👋 Hi there! I\'m your Library Assistant at the Manila City Library. You can ask me about books, library services, or get reading recommendations.';
-  }
-  return null;
+function detectLanguage(text) {
+  const filipinoHints = [' ang ', ' ng ', ' sa ', 'ni ', 'paano', 'ano', 'meron', 'kamusta', 'po'];
+  return filipinoHints.some(h => text.toLowerCase().includes(h)) ? 'fil' : 'en';
 }
 
 // ------------------------
-// REPLY BUILDERS
+// Search DB (your existing logic adapted)
 // ------------------------
-function buildReply(message, books, lang = 'en') {
-  const intro = lang === 'fil'
-    ? `Narito ang ilang libro na maaari mong magustuhan batay sa "${message}":`
-    : `Here are some books you might enjoy based on "${message}":`;
+async function searchBooks(conn, message, limit = 10) {
+  const terms = message.toLowerCase().split(/\s+/).filter(t => t.length > 2);
+  if (!terms.length) return [];
 
-  const list = books.map(
-    b => ` **${b.book_title}** by *${b.book_author}* (${b.book_publisher || 'N/A'}, ${b.book_year_publish || '—'})`
+  // build like pattern from terms, but keep simple to avoid huge queries
+  const q = `%${terms.join('%')}%`;
+  const [rows] = await conn.query(
+    `SELECT book_id, book_title, book_author, book_description, book_publisher, book_year_publish, book_view_count
+     FROM book_table
+     WHERE LOWER(book_title) LIKE ?
+        OR LOWER(book_description) LIKE ?
+        OR LOWER(book_author) LIKE ?
+        OR LOWER(book_publisher) LIKE ?
+     ORDER BY book_view_count DESC
+     LIMIT ?`,
+    [q, q, q, q, limit]
   );
-
-  return `${intro}\n\n${list.join('\n')}`;
-}
-
-function noResultsReply(message, lang = 'en') {
-  if (lang === 'fil')
-    return `Walang eksaktong tugma para sa "${message}". Subukang baguhin ang iyong query.`;
-  return `I couldn't find exact matches for "${message}". Try rephrasing your question.`;
+  return rows;
 }
 
 // ------------------------
-// /chat ENDPOINT
+// Smart fallback: similar by keyword (for missing specific title)
+// ------------------------
+async function findSimilarByTitle(conn, title, limit = 5) {
+  const words = title.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+  if (words.length === 0) return [];
+  const keyword = `%${words[0]}%`;
+  const [rows] = await conn.query(
+    `SELECT book_id, book_title, book_author, book_description, book_publisher, book_year_publish
+     FROM book_table
+     WHERE LOWER(book_title) LIKE ? OR LOWER(book_description) LIKE ?
+     ORDER BY book_view_count DESC
+     LIMIT ?`,
+    [keyword, keyword, limit]
+  );
+  return rows;
+}
+
+// ------------------------
+// Services list (static)
+// ------------------------
+const SERVICES_LIST = [
+  'Books',
+  'Fiction',
+  'Special Collection',
+  'Library Orientation',
+  'Periodicals',
+  'Reading Buddy',
+  'Tutorial(s)',
+  'Use of Library Space',
+  'Computer User',
+  'Computer With Internet',
+  'E-Books',
+  'E-Gov User',
+  'E-Resources',
+  'Digital Literacy',
+  'Wi-Fi User'
+];
+
+function servicesReply(lang = 'en') {
+  if (lang === 'fil') {
+    return `Narito ang mga serbisyong inaalok ng aming aklatan:\n\n${SERVICES_LIST.map(s => '• ' + s).join('\n')}`;
+  }
+  return `Here are the available library services:\n\n${SERVICES_LIST.map(s => '• ' + s).join('\n')}`;
+}
+
+// ------------------------
+// GPT helper — send DB facts + instructions (no hallucination)
+// ------------------------
+async function askGPTForReply(userMessage, books, lang = 'en') {
+  // Build a safe prompt: include explicit instruction to NOT invent titles.
+  const booksListText = (books && books.length)
+    ? books.map(b => `${b.book_title} — ${b.book_author}`).join('\n')
+    : 'NO_BOOKS_FOUND';
+
+  const systemPrompt = `
+You are LATA — a polite, rule-following library assistant for the Manila City Library.
+Rules:
+- Only answer library-related queries. If the question is not about library services, books, availability, borrowing, or related topics, politely refuse.
+- When you present book titles, use only the list of books provided in "BooksFound". Do NOT invent or hallucinate book titles or authors.
+- If BooksFound is "NO_BOOKS_FOUND", do NOT invent books; instead suggest genres, authors, or how the patron can request acquisition.
+- Keep replies concise (2-4 sentences), helpful, and friendly.
+- Prefer to ask a single follow-up question when it helps (e.g. "Would you like me to reserve one?").
+`;
+
+  const userPrompt = `
+User message:
+"""${userMessage}"""
+
+BooksFound:
+${booksListText}
+
+Respond in ${lang === 'fil' ? 'Filipino' : 'English'}.
+Format: Plain text. If you list books, use bullet points and the exact titles from BooksFound.
+`;
+
+  try {
+    // Use the Chat Completions API
+    const response = await openai.chat.completions.create({
+      model: MODEL,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      temperature: 0.2,
+      max_tokens: 400
+    });
+
+    // Different SDKs return slightly different shapes; handle common ones:
+    const choice = response?.choices?.[0];
+    if (!choice) return null;
+
+    // If the SDK returns message object:
+    if (choice.message && choice.message.content) {
+      return choice.message.content.trim();
+    }
+    // Fallback: older shape
+    if (choice.text) {
+      return choice.text.trim();
+    }
+    return null;
+  } catch (err) {
+    console.error('OpenAI call failed:', err?.message || err);
+    return null;
+  }
+}
+
+// ------------------------
+// /chat Endpoint — FULL FLOW
 // ------------------------
 router.post('/chat', async (req, res) => {
-  const { message } = req.body;
-  if (!message) return res.status(400).json({ error: 'Message required' });
+  const message = (req.body.message || '').trim();
+  if (!message) return res.status(400).json({ error: 'message required' });
+
+  // 1) domain restriction locally (quick guard)
+  if (!isLibraryRelated(message)) {
+    return res.json({ reply: "Sorry — I can only help with library-related questions (books, services, borrowing, etc.).", books: [] });
+  }
+
+  const lang = detectLanguage(message);
 
   let conn;
   try {
     conn = await pool.getConnection();
-    const intent = parseIntent(message);
 
-    // ✅ Library Service Detection (run first)
-    const serviceReply = checkForServices(message, intent.lang);
-    if (serviceReply) {
+    // 2) service question detection: if user asks about services, respond immediately (no GPT)
+    const svcKeywords = ['service', 'services', 'mga serbisyo', 'ano ang serbisyo', 'what services', 'do you offer'];
+    if (svcKeywords.some(k => message.toLowerCase().includes(k))) {
       conn.release();
-      return res.json({ reply: serviceReply, books: [] });
+      return res.json({ reply: servicesReply(lang), books: [] });
     }
 
-    // 👋 Greeting Detection (run second)
-    const greetingReply = checkForGreeting(message, intent.lang);
-    if (greetingReply) {
-      conn.release();
-      return res.json({ reply: greetingReply, books: [] });
-    }
+    // 3) Try to find books from DB (primary knowledge source)
+    let books = await searchBooks(conn, message, 10);
 
-    // 📚 Book Search
-    let books = await searchBooks(conn, intent, 10);
+    // 4) If nothing and user mentions a quoted title -> try similar
+    if (books.length === 0) {
+      const quoted = message.match(/["“”](.+?)["“”]/);
+      if (quoted && quoted[1]) {
+        const similar = await findSimilarByTitle(conn, quoted[1], 5);
+        if (similar.length > 0) {
+          conn.release();
+          // Ask GPT to phrase it nicely while giving the similar list — but to be safe, we can format local reply (no GPT) or attempt GPT
+          const safeReply = lang === 'fil'
+            ? `Walang eksaktong kopya ng "${quoted[1]}" sa talaan namin. Baka magustuhan mo ang mga sumusunod:\n\n${similar.map(b => `• ${b.book_title} by ${b.book_author}`).join('\n')}`
+            : `We currently don't have "${quoted[1]}" in our records. You might like these instead:\n\n${similar.map(b => `• ${b.book_title} by ${b.book_author}`).join('\n')}`;
 
-    // 🔍 If no results, try similar books
-    if (books.length === 0 && intent.terms.length > 0) {
-      const similarBooks = await findSimilarBooks(conn, intent.terms[0], 5);
-      if (similarBooks.length > 0) {
-        const similarReply = intent.lang === 'fil'
-          ? `Walang eksaktong tugma, ngunit maaaring magustuhan mo ang mga librong ito na may parehong tema:`
-          : `No exact matches found, but you might enjoy these similar books:`;
-        conn.release();
-        return res.json({ reply: `${similarReply}\n\n${buildReply(message, similarBooks, intent.lang)}`, books: similarBooks });
+          // Attempt to make it friendlier with GPT (optional)
+          const gptText = await askGPTForReply(message, similar, lang);
+          return res.json({ reply: gptText || safeReply, books: similar });
+        }
       }
     }
 
-    // 🧠 Fallback: recommend popular books
-    if (books.length === 0) {
-      books = await smartRecommendation(conn, 5);
+    // 5) Now we have books (maybe empty). Ask GPT to compose the reply (but only if OpenAI key present)
+    const localFallbackReply = (() => {
+      if (books.length > 0) {
+        return (lang === 'fil')
+          ? `Narito ang mga librong may kaugnayan sa \"${message}\":\n\n${books.map(b => `• ${b.book_title} by ${b.book_author}`).join('\n')}`
+          : `Here are some books related to "${message}":\n\n${books.map(b => `• ${b.book_title} by ${b.book_author}`).join('\n')}`;
+      } else {
+        return (lang === 'fil')
+          ? `Paumanhin — walang eksaktong tumutugmang aklat sa aming talaan. Maaari kang mag-request ng acquisition o subukang maghanap ng ibang keyword.`
+          : `Sorry — I couldn't find exact matches in our catalog. You can request acquisition or try different keywords.`;
+      }
+    })();
+
+    // 6) If OPENAI_API_KEY is set, try to use GPT for a friendly phrasing; otherwise use local fallback
+    let finalReply = localFallbackReply;
+    if (process.env.OPENAI_API_KEY) {
+      const gptText = await askGPTForReply(message, books, lang);
+      if (gptText) finalReply = gptText;
     }
 
     conn.release();
-    const reply = books.length
-      ? buildReply(message, books, intent.lang)
-      : noResultsReply(message, intent.lang);
+    return res.json({ reply: finalReply, books });
 
-    return res.json({ reply, books });
   } catch (err) {
-    if (conn) conn.release();
+    if (conn) try { conn.release(); } catch {}
     console.error('AI /chat error:', err);
     return res.status(500).json({ error: 'Server error: ' + err.message });
   }

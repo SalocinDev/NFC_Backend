@@ -368,7 +368,7 @@ routes.get("/comments-all", async (req, res) => {
   }
 });
 
-// POST /survey/report
+// POST /survey/report — now includes rating distribution per service
 routes.post("/report", async (req, res) => {
   const { serviceIds, range, startDate, endDate } = req.body;
 
@@ -393,44 +393,55 @@ routes.post("/report", async (req, res) => {
     : "";
 
   try {
-    //Fetch detailed ratings
-    const [details] = await pool.query(
+    // Fetch raw ratings for selected services within range
+    const [rows] = await pool.query(
       `
       SELECT 
         s.library_service_id,
         s.library_service_name,
-        f.feedback_rating,
-        f.response_timestamp
+        f.feedback_rating
       FROM library_survey_feedback f
       JOIN library_services_table s 
         ON f.service_id_fk = s.library_service_id
-      WHERE ${dateCondition} ${serviceFilter}
-      ORDER BY s.library_service_name, f.response_timestamp DESC;
+      WHERE ${dateCondition} ${serviceFilter};
       `
     );
 
-    //Fetch summarized averages
-    const [summary] = await pool.query(
-      `
-      SELECT 
-        s.library_service_id,
-        s.library_service_name,
-        ROUND(AVG(f.feedback_rating), 2) AS avg_rating,
-        COUNT(f.feedback_id) AS total_responses
-      FROM library_survey_feedback f
-      JOIN library_services_table s 
-        ON f.service_id_fk = s.library_service_id
-      WHERE ${dateCondition} ${serviceFilter}
-      GROUP BY s.library_service_id;
-      `
-    );
+    // Group and compute distribution manually in JS
+    const summaryMap = {};
 
-    res.json({ details, summary });
+    for (const row of rows) {
+      const id = row.library_service_id;
+      if (!summaryMap[id]) {
+        summaryMap[id] = {
+          library_service_name: row.library_service_name,
+          total_responses: 0,
+          total_sum: 0,
+          rating_counts: { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0 },
+        };
+      }
+      summaryMap[id].total_responses++;
+      summaryMap[id].total_sum += row.feedback_rating;
+      summaryMap[id].rating_counts[row.feedback_rating]++;
+    }
+
+    const summary = Object.values(summaryMap).map((svc) => ({
+      library_service_name: svc.library_service_name,
+      avg_rating:
+        svc.total_responses > 0
+          ? (svc.total_sum / svc.total_responses).toFixed(2)
+          : 0,
+      total_responses: svc.total_responses,
+      rating_counts: svc.rating_counts,
+    }));
+
+    res.json({ summary });
   } catch (err) {
     console.error("Error generating report:", err);
     res.status(500).json({ error: "Database query error" });
   }
 });
+
 
 
 

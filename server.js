@@ -31,6 +31,7 @@ const allowedOrigins = [
   "https://phalluis.github.io",
   "https://salocindev.github.io",
   "https://seriously-trusting-octopus.ngrok-free.app",
+  "http://172.26.1.2:4173/",
   "http://172.26.1.2:3000",
   "http://172.26.1.2:5000",
   "http://172.26.1.2:5001",
@@ -122,9 +123,11 @@ app.use("/reportsexport", verifyApiKey, limiter, require("./Routes/ReportsExport
 app.use("/wifi", verifyApiKey, limiter, require("./Routes/Wifi")); console.log("Wifi Route Loaded: /wifi");
 app.use("/userlibrarylog", verifyApiKey, limiter, require("./Routes/UserLibraryLog")); console.log("UserLibraryLog Route Loaded: /userlibrarylog");
 app.use("/survey", verifyApiKey, limiter, require("./Routes/Survey")); console.log("Survey Route Loaded: /survey");
+app.use("/libraryservices", verifyApiKey, limiter, require("./Routes/LibraryServices")); console.log("LibraryServices Route Loaded: /libraryservices");
 //const AIRoutes = require("./Routes/AIroutes");
 //app.use("/api/ai", AIRoutes); 
 app.use("/opac", verifyApiKey, limiter, require("./Routes/Opac")); console.log("Opac Route Loaded: /opac");
+app.use("/data-analysis", verifyApiKey, limiter, require("./Routes/DataAnalysis")); console.log("Data Analytics Route Loaded: /data-analysis")
 app.use("/uploads",
   express.static(path.join(__dirname, "uploads"), {
     setHeaders: (res) => {
@@ -147,12 +150,22 @@ app.get("/view", (req, res) => {
 
 app.get("/status", (req, res) => {
   const headers = req.headers;
+  const name = req.hostname;
   const origin = req.get("origin");
   res.status(200).json({
     success: true,
     system: "online",
     headers,
     origin,
+    name,
+  });
+});
+
+app.get("/", (req, res) => {
+  const ip = req.ip
+  res.json({
+    success: true,
+    message: "Hello, "+ ip
   });
 });
 

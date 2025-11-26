@@ -6,29 +6,50 @@ module.exports = (store) => {
 
   routes.get("/get-session", (req, res) => {
     try {
-      if (req.session && req.session.login) {
-      res.status(200).json({
-        loggedIn: true,
-        role: "user", 
-        ...req.session.login,
-        user: req.session.login.user_id,
-        /*firstName: req.session.login.user_firstname,
-        middleName: req.session.login.user_middlename,
-        lastName: req.session.login.user_lastname,
-        dob: req.session.login.user_date_of_birth,
-        gender: req.session.login.user_gender,
-        contact: req.session.login.user_contact_number,
-        school: req.session.login.user_school,
-        nfcToken: req.session.login.nfc_token,
-        sessionID: req.session.id, */
-      });
-      } else {
-        res.status(200).json({ loggedIn: false, message: "Not Logged in", err: "no req.session.login" });
+      console.log("SESSION LOGIN DATA:", req.session?.login);
+      if (!req.session || !req.session.login) {
+        return res.status(200).json({
+          loggedIn: false,
+          message: "Not Logged in",
+          err: "no req.session.login"
+        });
       }
+      if (req.session.login.role === "user") {
+        return res.status(200).json({
+          loggedIn: true,
+          role: "user",
+          user_id: req.session.login.user_id,
+          user_firstname: req.session.login.user_firstname,
+          user_middlename: req.session.login.user_middlename,
+          user_lastname: req.session.login.user_lastname,
+          user_pfp_id_fk: req.session.login.user_pfp_id_fk,
+        });
+      }
+      if (req.session.login.role === "staff") {
+        return res.status(200).json({
+          loggedIn: true,
+          role: "staff",
+          staff_id: req.session.login.staff_id,
+          staff_firstname: req.session.login.staff_firstname,
+          staff_middlename: req.session.login.staff_middlename,
+          staff_lastname: req.session.login.staff_lastname,
+          user_pfp_id_fk: req.session.login.user_pfp_id_fk,
+        });
+      }
+      return res.status(200).json({
+        loggedIn: false,
+        message: "Unknown role",
+        err: "invalid role"
+      });
+
     } catch (error) {
-      res.status(500).json({ success: false, message: "User not Logged In" })
+      return res.status(500).json({
+        success: false,
+        message: "User not Logged In"
+      });
     }
   });
+
 
 
   routes.post('/current-sessions', (req, res) => {
