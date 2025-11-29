@@ -115,7 +115,6 @@ app.use("/servicelogs", verifyApiKey, require("./Routes/ServiceLogs")); console.
 app.use("/user", verifyApiKey, limiter, require("./Routes/User")); console.log("User Route Loaded: /user");
 app.use("/ai", verifyApiKey, limiter, require("./Routes/AI")); console.log("AI Route Loaded: /ai");
 // app.use("/ai", verifyApiKey, limiter, require("./Routes/aiRoute")); console.log("AI Route Loaded: /ai");
-app.use("/ai", verifyApiKey, limiter, require("./Routes/AI"));
 app.use("/email", verifyApiKey, limiter, require("./Routes/Email")); console.log("Email Route Loaded: /email");
 app.use("/services", verifyApiKey, limiter, require("./Routes/Services")); console.log("Services Route Loaded: /services");
 app.use("/statsreports", verifyApiKey, limiter, require("./Routes/StatsReports")); console.log("Stats Reports Route Loaded: /statsreports");
